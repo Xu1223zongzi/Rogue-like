@@ -1,0 +1,128 @@
+{
+  "map_folder": "第二张地图",
+  "export_note": "rerun after latest multi-L edits",
+  "seed_scan_for_top_bottom_right": "1..2000",
+  "top_bottom_right_hits": [],
+  "screenshots": [
+    {
+      "seed": 1,
+      "file": "seed_0001.png",
+      "top_bottom_right_hits": [],
+      "debug_lines": 42,
+      "char_map_size": [
+        638,
+        277
+      ]
+    },
+    {
+      "seed": 2,
+      "file": "seed_0002.png",
+      "top_bottom_right_hits": [],
+      "debug_lines": 42,
+      "char_map_size": [
+        654,
+        277
+      ]
+    },
+    {
+      "seed": 3,
+      "file": "seed_0003.png",
+      "top_bottom_right_hits": [],
+      "debug_lines": 36,
+      "char_map_size": [
+        646,
+        353
+      ]
+    },
+    {
+      "seed": 4,
+      "file": "seed_0004.png",
+      "top_bottom_right_hits": [],
+      "debug_lines": 38,
+      "char_map_size": [
+        654,
+        334
+      ]
+    },
+    {
+      "seed": 5,
+      "file": "seed_0005.png",
+      "top_bottom_right_hits": [],
+      "debug_lines": 42,
+      "char_map_size": [
+        630,
+        277
+      ]
+    },
+    {
+      "seed": 6,
+      "file": "seed_0006.png",
+      "top_bottom_right_hits": [],
+      "debug_lines": 48,
+      "char_map_size": [
+        690,
+        296
+      ]
+    },
+    {
+      "seed": 7,
+      "file": "seed_0007.png",
+      "top_bottom_right_hits": [],
+      "debug_lines": 34,
+      "char_map_size": [
+        587,
+        296
+      ]
+    },
+    {
+      "seed": 8,
+      "file": "seed_0008.png",
+      "top_bottom_right_hits": [],
+      "debug_lines": 38,
+      "char_map_size": [
+        698,
+        260
+      ]
+    },
+    {
+      "seed": 9,
+      "file": "seed_0009.png",
+      "top_bottom_right_hits": [],
+      "debug_lines": 52,
+      "char_map_size": [
+        690,
+        279
+      ]
+    },
+    {
+      "seed": 10,
+      "file": "seed_0010.png",
+      "top_bottom_right_hits": [],
+      "debug_lines": 50,
+      "char_map_size": [
+        690,
+        334
+      ]
+    },
+    {
+      "seed": 11,
+      "file": "seed_0011.png",
+      "top_bottom_right_hits": [],
+      "debug_lines": 50,
+      "char_map_size": [
+        722,
+        279
+      ]
+    },
+    {
+      "seed": 12,
+      "file": "seed_0012.png",
+      "top_bottom_right_hits": [],
+      "debug_lines": 44,
+      "char_map_size": [
+        674,
+        277
+      ]
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+[
+  {
+    "seed": 1,
+    "png": "seed_001.png",
+    "multi_l_connectors": [
+      "connector 特殊连接通道/多L_04 at (431, 114) sides=['down', 'right', 'up'] left=422 top=110 sockets={'left': None, 'right': (451, 114), 'top': (427, 110), 'bottom': (431, 119)}"
+    ]
+  },
+  {
+    "seed": 2,
+    "png": "seed_002.png",
+    "multi_l_connectors": [
+      "connector 特殊连接通道/多L_04 at (411, 152) sides=['down', 'right', 'up'] left=402 top=148 sockets={'left': None, 'right': (431, 152), 'top': (407, 148), 'bottom': (411, 157)}"
+    ]
+  },
+  {
+    "seed": 3,
+    "png": "seed_003.png",
+    "multi_l_connectors": []
+  },
+  {
+    "seed": 4,
+    "png": "seed_004.png",
+    "multi_l_connectors": []
+  },
+  {
+    "seed": 5,
+    "png": "seed_005.png",
+    "multi_l_connectors": []
+  },
+  {
+    "seed": 6,
+    "png": "seed_006.png",
+    "multi_l_connectors": []
+  },
+  {
+    "seed": 7,
+    "png": "seed_007.png",
+    "multi_l_connectors": [
+      "connector 特殊连接通道/多L_04 at (284, 152) sides=['down', 'right', 'up'] left=275 top=148 sockets={'left': None, 'right': (304, 152), 'top': (280, 148), 'bottom': (284, 157)}",
+      "connector 特殊连接通道/多L_04 at (344, 171) sides=['down', 'right', 'up'] left=335 top=167 sockets={'left': None, 'right': (364, 171), 'top': (340, 167), 'bottom': (344, 176)}"
+    ]
+  },
+  {
+    "seed": 8,
+    "png": "seed_008.png",
+    "multi_l_connectors": []
+  },
+  {
+    "seed": 9,
+    "png": "seed_009.png",
+    "multi_l_connectors": [
+      "connector 特殊连接通道/多L_04 at (233, 154) sides=['down', 'right', 'up'] left=224 top=150 sockets={'left': None, 'right': (253, 154), 'top': (229, 150), 'bottom': (233, 159)}"
+    ]
+  },
+  {
+    "seed": 10,
+    "png": "seed_010.png",
+    "multi_l_connectors": []
+  },
+  {
+    "seed": 11,
+    "png": "seed_011.png",
+    "multi_l_connectors": [
+      "connector 特殊连接通道/多L_04 at (344, 135) sides=['down', 'right', 'up'] left=335 top=131 sockets={'left': None, 'right': (364, 135), 'top': (340, 131), 'bottom': (344, 140)}"
+    ]
+  },
+  {
+    "seed": 12,
+    "png": "seed_012.png",
+    "multi_l_connectors": []
+  },
+  {
+    "seed": 13,
+    "png": "seed_013.png",
+    "multi_l_connectors": []
+  },
+  {
+    "seed": 14,
+    "png": "seed_014.png",
+    "multi_l_connectors": [
+      "connector 特殊连接通道/多L_04 at (506, 133) sides=['down', 'right', 'up'] left=497 top=129 sockets={'left': None, 'right': (526, 133), 'top': (502, 129), 'bottom': (506, 138)}"
+    ]
+  },
+  {
+    "seed": 15,
+    "png": "seed_015.png",
+    "multi_l_connectors": []
+  },
+  {
+    "seed": 16,
+    "png": "seed_016.png",
+    "multi_l_connectors": []
+  },
+  {
+    "seed": 17,
+    "png": "seed_017.png",
+    "multi_l_connectors": []
+  },
+  {
+    "seed": 18,
+    "png": "seed_018.png",
+    "multi_l_connectors": []
+  },
+  {
+    "seed": 19,
+    "png": "seed_019.png",
+    "multi_l_connectors": []
+  },
+  {
+    "seed": 20,
+    "png": "seed_020.png",
+    "multi_l_connectors": [
+      "connector 特殊连接通道/多L_04 at (431, 171) sides=['down', 'right', 'up'] left=422 top=167 sockets={'left': None, 'right': (451, 171), 'top': (427, 167), 'bottom': (431, 176)}"
+    ]
+  }
+]

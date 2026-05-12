@@ -1,0 +1,529 @@
+{
+  "map_folder": "第二张地图",
+  "export_note": "after multi-L overlap fix",
+  "screenshots": [
+    {
+      "seed": 1,
+      "file": "seed_0001.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            260,
+            133
+          ],
+          "component": "特殊连接通道/多L_01"
+        },
+        {
+          "point": [
+            431,
+            114
+          ],
+          "component": "特殊连接通道/多L_04"
+        }
+      ],
+      "debug_lines": 40,
+      "char_map_size": [
+        638,
+        277
+      ]
+    },
+    {
+      "seed": 2,
+      "file": "seed_0002.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            225,
+            152
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            284,
+            133
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            411,
+            152
+          ],
+          "component": "特殊连接通道/多L_04"
+        }
+      ],
+      "debug_lines": 39,
+      "char_map_size": [
+        654,
+        277
+      ]
+    },
+    {
+      "seed": 3,
+      "file": "seed_0003.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            165,
+            171
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            395,
+            228
+          ],
+          "component": "特殊连接通道/多L_04"
+        }
+      ],
+      "debug_lines": 34,
+      "char_map_size": [
+        646,
+        353
+      ]
+    },
+    {
+      "seed": 4,
+      "file": "seed_0004.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            292,
+            171
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            403,
+            190
+          ],
+          "component": "特殊连接通道/多L_04"
+        }
+      ],
+      "debug_lines": 36,
+      "char_map_size": [
+        654,
+        334
+      ]
+    },
+    {
+      "seed": 5,
+      "file": "seed_0005.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            225,
+            152
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            387,
+            133
+          ],
+          "component": "特殊连接通道/多L_01"
+        }
+      ],
+      "debug_lines": 40,
+      "char_map_size": [
+        630,
+        277
+      ]
+    },
+    {
+      "seed": 6,
+      "file": "seed_0006.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            268,
+            133
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            379,
+            171
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            498,
+            152
+          ],
+          "component": "特殊连接通道/多L_04"
+        }
+      ],
+      "debug_lines": 45,
+      "char_map_size": [
+        690,
+        296
+      ]
+    },
+    {
+      "seed": 7,
+      "file": "seed_0007.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            284,
+            152
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            344,
+            171
+          ],
+          "component": "特殊连接通道/多L_04"
+        }
+      ],
+      "debug_lines": 32,
+      "char_map_size": [
+        587,
+        296
+      ]
+    },
+    {
+      "seed": 8,
+      "file": "seed_0008.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            217,
+            135
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            447,
+            97
+          ],
+          "component": "特殊连接通道/多L_01"
+        }
+      ],
+      "debug_lines": 36,
+      "char_map_size": [
+        698,
+        260
+      ]
+    },
+    {
+      "seed": 9,
+      "file": "seed_0009.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            233,
+            154
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            292,
+            135
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            490,
+            116
+          ],
+          "component": "特殊连接通道/多L_01"
+        }
+      ],
+      "debug_lines": 49,
+      "char_map_size": [
+        690,
+        279
+      ]
+    },
+    {
+      "seed": 10,
+      "file": "seed_0010.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            328,
+            152
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            447,
+            171
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            498,
+            190
+          ],
+          "component": "特殊连接通道/多L_01"
+        }
+      ],
+      "debug_lines": 47,
+      "char_map_size": [
+        690,
+        334
+      ]
+    },
+    {
+      "seed": 11,
+      "file": "seed_0011.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            173,
+            154
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            284,
+            116
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            344,
+            135
+          ],
+          "component": "特殊连接通道/多L_04"
+        }
+      ],
+      "debug_lines": 47,
+      "char_map_size": [
+        722,
+        279
+      ]
+    },
+    {
+      "seed": 12,
+      "file": "seed_0012.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            209,
+            114
+          ],
+          "component": "特殊连接通道/多L_01"
+        },
+        {
+          "point": [
+            363,
+            133
+          ],
+          "component": "特殊连接通道/多L_01"
+        }
+      ],
+      "debug_lines": 42,
+      "char_map_size": [
+        674,
+        277
+      ]
+    },
+    {
+      "seed": 13,
+      "file": "seed_0013.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            276,
+            135
+          ],
+          "component": "特殊连接通道/多L_01"
+        }
+      ],
+      "debug_lines": 35,
+      "char_map_size": [
+        638,
+        279
+      ]
+    },
+    {
+      "seed": 14,
+      "file": "seed_0014.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            312,
+            152
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            439,
+            114
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            506,
+            133
+          ],
+          "component": "特殊连接通道/多L_04"
+        }
+      ],
+      "debug_lines": 47,
+      "char_map_size": [
+        706,
+        296
+      ]
+    },
+    {
+      "seed": 15,
+      "file": "seed_0015.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            201,
+            114
+          ],
+          "component": "特殊连接通道/多L_01"
+        }
+      ],
+      "debug_lines": 33,
+      "char_map_size": [
+        622,
+        258
+      ]
+    },
+    {
+      "seed": 16,
+      "file": "seed_0016.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            201,
+            190
+          ],
+          "component": "特殊连接通道/多L_01"
+        },
+        {
+          "point": [
+            312,
+            152
+          ],
+          "component": "特殊连接通道/多L_01"
+        }
+      ],
+      "debug_lines": 36,
+      "char_map_size": [
+        547,
+        334
+      ]
+    },
+    {
+      "seed": 17,
+      "file": "seed_0017.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            157,
+            171
+          ],
+          "component": "特殊连接通道/多L_01"
+        }
+      ],
+      "debug_lines": 33,
+      "char_map_size": [
+        622,
+        296
+      ]
+    },
+    {
+      "seed": 18,
+      "file": "seed_0018.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            209,
+            116
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            276,
+            97
+          ],
+          "component": "特殊连接通道/多L_04"
+        }
+      ],
+      "debug_lines": 44,
+      "char_map_size": [
+        682,
+        260
+      ]
+    },
+    {
+      "seed": 19,
+      "file": "seed_0019.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            260,
+            135
+          ],
+          "component": "特殊连接通道/多L_01"
+        }
+      ],
+      "debug_lines": 41,
+      "char_map_size": [
+        698,
+        298
+      ]
+    },
+    {
+      "seed": 20,
+      "file": "seed_0020.png",
+      "top_bottom_right_incidents": [
+        {
+          "point": [
+            209,
+            171
+          ],
+          "component": "特殊连接通道/多L_01"
+        },
+        {
+          "point": [
+            320,
+            152
+          ],
+          "component": "特殊连接通道/多L_04"
+        },
+        {
+          "point": [
+            431,
+            171
+          ],
+          "component": "特殊连接通道/多L_04"
+        }
+      ],
+      "debug_lines": 37,
+      "char_map_size": [
+        622,
+        296
+      ]
+    }
+  ],
+  "non_room_connector_overlap_in_seed_1_200": 0,
+  "top_bottom_right_incidents_in_seed_1_200": 391
+}

@@ -1,0 +1,8 @@
+第二张地图 路由修复后复审截图
+
+文件夹内容：
+- seed_0001.png 到 seed_0012.png：修复后当前随机地图前 12 个种子的装配调试截图
+- manifest.json：包含每张图的非房间三向 incident 列表
+
+seed 1 的四个典型坏点现已变为：{'(260, 133)': ['right', 'top'], '(272, 133)': ['bottom', 'right'], '(427, 114)': ['right', 'top'], '(431, 114)': ['bottom', 'right']}
+seed 1..200 的非房间三向 incident 总数：0

@@ -1,0 +1,507 @@
+{
+  "map_folder": "第二张地图",
+  "export_note": "after room-side T-promotion fix, expanded sample set",
+  "screenshots": [
+    {
+      "seed": 1,
+      "file": "seed_0001.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 42,
+      "char_map_size": [
+        638,
+        277
+      ]
+    },
+    {
+      "seed": 2,
+      "file": "seed_0002.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 42,
+      "char_map_size": [
+        654,
+        277
+      ]
+    },
+    {
+      "seed": 3,
+      "file": "seed_0003.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 36,
+      "char_map_size": [
+        646,
+        353
+      ]
+    },
+    {
+      "seed": 4,
+      "file": "seed_0004.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 38,
+      "char_map_size": [
+        654,
+        334
+      ]
+    },
+    {
+      "seed": 5,
+      "file": "seed_0005.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 42,
+      "char_map_size": [
+        630,
+        277
+      ]
+    },
+    {
+      "seed": 6,
+      "file": "seed_0006.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 48,
+      "char_map_size": [
+        690,
+        296
+      ]
+    },
+    {
+      "seed": 7,
+      "file": "seed_0007.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 34,
+      "char_map_size": [
+        587,
+        296
+      ]
+    },
+    {
+      "seed": 8,
+      "file": "seed_0008.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 38,
+      "char_map_size": [
+        698,
+        260
+      ]
+    },
+    {
+      "seed": 9,
+      "file": "seed_0009.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 52,
+      "char_map_size": [
+        690,
+        279
+      ]
+    },
+    {
+      "seed": 10,
+      "file": "seed_0010.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 50,
+      "char_map_size": [
+        690,
+        334
+      ]
+    },
+    {
+      "seed": 11,
+      "file": "seed_0011.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 50,
+      "char_map_size": [
+        722,
+        279
+      ]
+    },
+    {
+      "seed": 12,
+      "file": "seed_0012.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 44,
+      "char_map_size": [
+        674,
+        277
+      ]
+    },
+    {
+      "seed": 13,
+      "file": "seed_0013.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 36,
+      "char_map_size": [
+        638,
+        279
+      ]
+    },
+    {
+      "seed": 14,
+      "file": "seed_0014.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 50,
+      "char_map_size": [
+        706,
+        296
+      ]
+    },
+    {
+      "seed": 15,
+      "file": "seed_0015.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 34,
+      "char_map_size": [
+        622,
+        258
+      ]
+    },
+    {
+      "seed": 16,
+      "file": "seed_0016.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 38,
+      "char_map_size": [
+        547,
+        334
+      ]
+    },
+    {
+      "seed": 17,
+      "file": "seed_0017.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 34,
+      "char_map_size": [
+        622,
+        296
+      ]
+    },
+    {
+      "seed": 18,
+      "file": "seed_0018.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 46,
+      "char_map_size": [
+        682,
+        260
+      ]
+    },
+    {
+      "seed": 19,
+      "file": "seed_0019.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 42,
+      "char_map_size": [
+        698,
+        298
+      ]
+    },
+    {
+      "seed": 20,
+      "file": "seed_0020.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 40,
+      "char_map_size": [
+        622,
+        296
+      ]
+    },
+    {
+      "seed": 21,
+      "file": "seed_0021.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 52,
+      "char_map_size": [
+        714,
+        296
+      ]
+    },
+    {
+      "seed": 22,
+      "file": "seed_0022.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 38,
+      "char_map_size": [
+        666,
+        334
+      ]
+    },
+    {
+      "seed": 23,
+      "file": "seed_0023.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 48,
+      "char_map_size": [
+        666,
+        277
+      ]
+    },
+    {
+      "seed": 24,
+      "file": "seed_0024.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 48,
+      "char_map_size": [
+        654,
+        372
+      ]
+    },
+    {
+      "seed": 25,
+      "file": "seed_0025.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 32,
+      "char_map_size": [
+        587,
+        296
+      ]
+    },
+    {
+      "seed": 26,
+      "file": "seed_0026.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 38,
+      "char_map_size": [
+        571,
+        353
+      ]
+    },
+    {
+      "seed": 27,
+      "file": "seed_0027.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 42,
+      "char_map_size": [
+        682,
+        334
+      ]
+    },
+    {
+      "seed": 28,
+      "file": "seed_0028.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 50,
+      "char_map_size": [
+        698,
+        279
+      ]
+    },
+    {
+      "seed": 29,
+      "file": "seed_0029.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 42,
+      "char_map_size": [
+        638,
+        298
+      ]
+    },
+    {
+      "seed": 30,
+      "file": "seed_0030.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 44,
+      "char_map_size": [
+        646,
+        353
+      ]
+    },
+    {
+      "seed": 31,
+      "file": "seed_0031.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 48,
+      "char_map_size": [
+        690,
+        279
+      ]
+    },
+    {
+      "seed": 32,
+      "file": "seed_0032.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 34,
+      "char_map_size": [
+        622,
+        334
+      ]
+    },
+    {
+      "seed": 33,
+      "file": "seed_0033.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 48,
+      "char_map_size": [
+        630,
+        296
+      ]
+    },
+    {
+      "seed": 34,
+      "file": "seed_0034.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 38,
+      "char_map_size": [
+        638,
+        315
+      ]
+    },
+    {
+      "seed": 35,
+      "file": "seed_0035.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 48,
+      "char_map_size": [
+        622,
+        315
+      ]
+    },
+    {
+      "seed": 36,
+      "file": "seed_0036.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 36,
+      "char_map_size": [
+        714,
+        334
+      ]
+    },
+    {
+      "seed": 37,
+      "file": "seed_0037.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 32,
+      "char_map_size": [
+        555,
+        277
+      ]
+    },
+    {
+      "seed": 38,
+      "file": "seed_0038.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 36,
+      "char_map_size": [
+        682,
+        279
+      ]
+    },
+    {
+      "seed": 39,
+      "file": "seed_0039.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 44,
+      "char_map_size": [
+        646,
+        315
+      ]
+    },
+    {
+      "seed": 40,
+      "file": "seed_0040.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 36,
+      "char_map_size": [
+        630,
+        353
+      ]
+    },
+    {
+      "seed": 41,
+      "file": "seed_0041.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 36,
+      "char_map_size": [
+        630,
+        315
+      ]
+    },
+    {
+      "seed": 42,
+      "file": "seed_0042.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 42,
+      "char_map_size": [
+        690,
+        315
+      ]
+    },
+    {
+      "seed": 43,
+      "file": "seed_0043.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 46,
+      "char_map_size": [
+        630,
+        315
+      ]
+    },
+    {
+      "seed": 44,
+      "file": "seed_0044.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 42,
+      "char_map_size": [
+        658,
+        298
+      ]
+    },
+    {
+      "seed": 45,
+      "file": "seed_0045.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 48,
+      "char_map_size": [
+        646,
+        296
+      ]
+    },
+    {
+      "seed": 46,
+      "file": "seed_0046.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 40,
+      "char_map_size": [
+        622,
+        296
+      ]
+    },
+    {
+      "seed": 47,
+      "file": "seed_0047.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 46,
+      "char_map_size": [
+        622,
+        260
+      ]
+    },
+    {
+      "seed": 48,
+      "file": "seed_0048.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 32,
+      "char_map_size": [
+        603,
+        277
+      ]
+    },
+    {
+      "seed": 49,
+      "file": "seed_0049.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 36,
+      "char_map_size": [
+        706,
+        296
+      ]
+    },
+    {
+      "seed": 50,
+      "file": "seed_0050.png",
+      "non_room_three_way_incidents": [],
+      "debug_lines": 42,
+      "char_map_size": [
+        587,
+        315
+      ]
+    }
+  ],
+  "non_room_three_way_incidents_in_seed_1_50": 0
+}

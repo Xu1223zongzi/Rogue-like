@@ -1,0 +1,8 @@
+第二张地图 多L 复审截图
+
+文件夹内容：
+- seed_0001.png 到 seed_0012.png：当前随机地图前 12 个种子的最新装配调试截图
+- manifest.json：每张截图对应的种子、画布尺寸、debug_lines 数量，以及 seed 1..2000 的 top+bottom+right 命中扫描结果
+
+本轮筛查结论：
+- 当前 seed 1..2000 仍没有自然出现 top+bottom+right incident

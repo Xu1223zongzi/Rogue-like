@@ -1,0 +1,8 @@
+第二张地图 多L 重叠修复后复审截图
+
+文件夹内容：
+- seed_0001.png 到 seed_0020.png：修复后当前随机地图前 20 个种子的装配调试截图
+- manifest.json：包含每张图的 top+bottom+right incident 列表
+
+seed 1..200 的 top+bottom+right incident 总数：391
+已额外验证：seed 1..200 的连接器几何重叠总数为 0
