@@ -6,6 +6,7 @@ import pygame
 
 from game.config import ACCENT_COLOR, MUTED_TEXT, PANEL_BORDER, PANEL_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
 from game.core.scene import Scene
+from game.rendering import draw_ui_panel_box
 
 
 class LoadingScene(Scene):
@@ -27,8 +28,7 @@ class LoadingScene(Scene):
     def render(self, surface: pygame.Surface) -> None:
         panel = pygame.Rect(0, 0, 480, 220)
         panel.center = (WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
-        pygame.draw.rect(surface, PANEL_COLOR, panel, border_radius=18)
-        pygame.draw.rect(surface, PANEL_BORDER, panel, width=2, border_radius=18)
+        draw_ui_panel_box(self.app, surface, "loading_panel", panel, PANEL_COLOR, PANEL_BORDER, border_radius=18)
 
         title = self.app.get_font(30, bold=True).render("Loading Room", True, TEXT_COLOR)
         subtitle = self.app.get_font(20).render("Preparing loadout slots, pickups, sanity, and camera state...", True, MUTED_TEXT)

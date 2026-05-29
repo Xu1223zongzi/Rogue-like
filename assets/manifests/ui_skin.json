@@ -1,0 +1,12 @@
+{
+  "panels": {
+    "title_panel": null,
+    "loading_panel": null,
+    "pause_panel": null,
+    "hud_main": null,
+    "equipment_main": null,
+    "equipment_column": null,
+    "map_panel": null,
+    "world_map_panel": null
+  }
+}

@@ -3,6 +3,7 @@ from __future__ import annotations
 import pygame
 
 from game.config import ACCENT_COLOR, DANGER_COLOR, MUTED_TEXT, PANEL_BORDER, PANEL_COLOR, PLAYER_PARRY_COLOR, SUCCESS_COLOR, TEXT_COLOR
+from game.rendering import draw_ui_panel_box
 from game.systems.equipment import EquipmentState, PassiveCardSummary, PassiveSummary, SLOT_LABELS, get_equipment, knight_minor_tier, major_is_active, passive_tier_details
 
 
@@ -12,6 +13,38 @@ MINOR_ARCHETYPE_META = {
     "control": ("Control", "Rain eye", (144, 124, 240)),
     "summon": ("Summon", "Spirit eye", (96, 210, 194)),
 }
+
+
+def blend_color(start: tuple[int, int, int], end: tuple[int, int, int], ratio: float) -> tuple[int, int, int]:
+    clamped_ratio = max(0.0, min(1.0, ratio))
+    return tuple(int(round(start[index] + (end[index] - start[index]) * clamped_ratio)) for index in range(3))
+
+
+def tier_visual_color(tier: int, base_color: tuple[int, int, int], neutral_color: tuple[int, int, int] = TEXT_COLOR) -> tuple[int, int, int]:
+    if tier <= 1:
+        return neutral_color
+    ratio_map = {
+        2: 0.42,
+        3: 0.68,
+        4: 0.90,
+    }
+    return blend_color(neutral_color, base_color, ratio_map.get(tier, 0.90))
+
+
+def tier_from_label(tier_label: str) -> int:
+    if not tier_label.startswith("T"):
+        return 0
+    try:
+        return int(tier_label[1:])
+    except ValueError:
+        return 0
+
+
+def passive_card_tier_color(card_summary: PassiveCardSummary) -> tuple[int, int, int]:
+    tier = tier_from_label(card_summary.tier_label)
+    if card_summary.key in MINOR_ARCHETYPE_META:
+        return tier_visual_color(tier, MINOR_ARCHETYPE_META[card_summary.key][2])
+    return tier_visual_color(tier, ACCENT_COLOR)
 
 
 def draw_equipment_panel(surface: pygame.Surface, app, equipment: EquipmentState, passive_summary: PassiveSummary, nearby_item_id: str | None = None) -> None:
@@ -28,8 +61,7 @@ def draw_equipment_panel(surface: pygame.Surface, app, equipment: EquipmentState
     pygame.draw.rect(back, (*PLAYER_PARRY_COLOR, 18), pygame.Rect(18, 18, panel.width - 36, 82), border_radius=22)
     pygame.draw.rect(back, (*ACCENT_COLOR, 18), pygame.Rect(18, 120, panel.width - 36, panel.height - 138), width=2, border_radius=24)
     surface.blit(back, panel.topleft)
-    pygame.draw.rect(surface, PANEL_COLOR, panel, border_radius=28)
-    pygame.draw.rect(surface, PANEL_BORDER, panel, width=2, border_radius=28)
+    draw_ui_panel_box(app, surface, "equipment_main", panel, PANEL_COLOR, PANEL_BORDER, border_radius=28)
 
     title_font = app.get_font(32, bold=True)
     body_font = app.get_font(18)
@@ -44,8 +76,7 @@ def draw_equipment_panel(surface: pygame.Surface, app, equipment: EquipmentState
     center_rect = pygame.Rect(panel.x + 372, panel.y + 110, 354, 486)
     right_rect = pygame.Rect(panel.x + 742, panel.y + 110, 354, 486)
     for rect in (left_rect, center_rect, right_rect):
-        pygame.draw.rect(surface, (18, 24, 34), rect, border_radius=20)
-        pygame.draw.rect(surface, PANEL_BORDER, rect, width=1, border_radius=20)
+        draw_ui_panel_box(app, surface, "equipment_column", rect, (18, 24, 34), PANEL_BORDER, border_radius=20, border_width=1)
 
     hovered_item_id = draw_left_column(surface, app, passive_summary, left_rect, mouse_pos)
     hovered_tier = draw_right_column(surface, app, equipment, passive_summary, right_rect, mouse_pos)
@@ -107,7 +138,7 @@ def draw_passive_card(
 
     surface.blit(body_font.render(card_summary.title, True, TEXT_COLOR), (rect.x + 14, rect.y + 26))
     if card_summary.tier_label != "T0":
-        tier_surface = small_font.render(card_summary.tier_label, True, ACCENT_COLOR)
+        tier_surface = small_font.render(card_summary.tier_label, True, passive_card_tier_color(card_summary))
         surface.blit(tier_surface, (rect.right - tier_surface.get_width() - 14, rect.y + 12))
     subtitle_color = ACCENT_COLOR if hovered else MUTED_TEXT
     draw_wrapped_text(surface, app, card_summary.subtitle, rect.x + 14, rect.y + 48, rect.width - 28, subtitle_color, 14)
@@ -143,7 +174,7 @@ def draw_focus_column(
         draw_slot_glyph(surface, preview_item.slot, preview_item_id, (hero.right - 50, hero.centery + 2), 26)
         surface.blit(small_font.render(preview_item.major_name, True, ACCENT_COLOR), (hero.x + 18, hero.y + 84))
     elif hovered_tier is not None:
-        tier_surface = title_font.render(f"T{hovered_tier}", True, PLAYER_PARRY_COLOR)
+        tier_surface = title_font.render(f"T{hovered_tier}", True, tier_visual_color(hovered_tier, PLAYER_PARRY_COLOR))
         surface.blit(tier_surface, (hero.right - tier_surface.get_width() - 18, hero.y + 38))
 
     notes = pygame.Rect(rect.x + 18, rect.y + 244, rect.width - 36, rect.height - 262)
@@ -196,9 +227,14 @@ def draw_right_column(surface: pygame.Surface, app, equipment: EquipmentState, p
     body_font = app.get_font(18)
     small_font = app.get_font(15)
     tiny_font = app.get_font(14)
+    active_tier = tier_from_label(passive_summary.tier_label)
+    active_tier_color = tier_visual_color(active_tier, ACCENT_COLOR)
 
     surface.blit(title_font.render("Series Status", True, TEXT_COLOR), (rect.x + 18, rect.y + 16))
-    surface.blit(body_font.render(f"{passive_summary.series_label}  {passive_summary.tier_label}", True, ACCENT_COLOR), (rect.x + 18, rect.y + 44))
+    series_surface = body_font.render(passive_summary.series_label, True, TEXT_COLOR)
+    surface.blit(series_surface, (rect.x + 18, rect.y + 44))
+    tier_surface = body_font.render(passive_summary.tier_label, True, active_tier_color if active_tier > 0 else MUTED_TEXT)
+    surface.blit(tier_surface, (rect.x + 28 + series_surface.get_width(), rect.y + 44))
     surface.blit(small_font.render(passive_summary.main_passive, True, TEXT_COLOR), (rect.x + 18, rect.y + 70))
 
     hovered_tier: int | None = None
@@ -207,11 +243,13 @@ def draw_right_column(surface: pygame.Surface, app, equipment: EquipmentState, p
         chip = pygame.Rect(rect.x + 18 + (tier - 1) * 78, chip_y, 64, 42)
         current = passive_summary.tier_label == f"T{tier}"
         unlocked = tier <= passive_summary.series_count
-        fill = (40, 52, 74) if unlocked else (24, 31, 44)
-        border = ACCENT_COLOR if current else (SUCCESS_COLOR if unlocked else PANEL_BORDER)
+        chip_color = tier_visual_color(tier, ACCENT_COLOR)
+        fill = blend_color((24, 31, 44), chip_color, 0.16) if unlocked and tier >= 2 else ((40, 52, 74) if unlocked else (24, 31, 44))
+        border = chip_color if current or (unlocked and tier >= 2) else (TEXT_COLOR if current else (SUCCESS_COLOR if unlocked else PANEL_BORDER))
         pygame.draw.rect(surface, fill, chip, border_radius=12)
         pygame.draw.rect(surface, border, chip, width=2, border_radius=12)
-        label = body_font.render(f"T{tier}", True, TEXT_COLOR if unlocked else MUTED_TEXT)
+        label_color = chip_color if unlocked else MUTED_TEXT
+        label = body_font.render(f"T{tier}", True, label_color)
         surface.blit(label, label.get_rect(center=chip.center))
         if chip.collidepoint(mouse_pos):
             hovered_tier = tier
@@ -230,13 +268,15 @@ def draw_right_column(surface: pygame.Surface, app, equipment: EquipmentState, p
         card = pygame.Rect(rect.x + 18 + (index % 2) * 160, rect.y + 312 + (index // 2) * 92, 150, 78)
         tier = knight_minor_tier(equipment, archetype)
         title, organs, color = MINOR_ARCHETYPE_META[archetype]
+        tier_color = tier_visual_color(tier, color)
         hovered = card.collidepoint(mouse_pos)
-        fill = (31, 40, 58) if hovered else (24, 31, 44)
-        border = color if tier > 0 else PANEL_BORDER
+        base_fill = (31, 40, 58) if hovered else (24, 31, 44)
+        fill = blend_color(base_fill, tier_color, 0.14) if tier >= 2 else base_fill
+        border = tier_color if tier > 0 else PANEL_BORDER
         pygame.draw.rect(surface, fill, card, border_radius=16)
         pygame.draw.rect(surface, border, card, width=2, border_radius=16)
         surface.blit(body_font.render(title, True, TEXT_COLOR), (card.x + 12, card.y + 12))
-        surface.blit(body_font.render(f"T{tier}", True, color if tier > 0 else MUTED_TEXT), (card.right - 40, card.y + 12))
+        surface.blit(body_font.render(f"T{tier}", True, tier_color if tier > 0 else MUTED_TEXT), (card.right - 40, card.y + 12))
         draw_wrapped_text(surface, app, organs, card.x + 12, card.y + 40, card.width - 24, TEXT_COLOR if tier > 0 else MUTED_TEXT, 14)
 
     return hovered_tier

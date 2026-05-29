@@ -236,6 +236,8 @@ def _room_file_for_sides(role: str, room_size: str, needs_left: bool, needs_righ
         return "房间组件/房间_00.txt" if needs_right else "房间组件/房间_00_1.txt"
 
     if role == "boss":
+        if needs_left and needs_right:
+            return "房间组件/房间_02.txt"
         if needs_left and not needs_right:
             return "房间组件/Boss房_左.txt"
         return "房间组件/Boss房_右.txt"
@@ -522,6 +524,11 @@ def _generate_random_room_graph(
         node_specs[next_id]["incoming"].append(parent_id)
         return next_id
 
+    def leaf_should_append_portal(room_size: str, branch_room_count: int) -> bool:
+        if room_size == "large":
+            return True
+        return branch_room_count >= 3
+
     start_id = add_node("start", "large", "main_path", 0, start_lane, "初始房间")
     main_path_ids.append(start_id)
     current_id = start_id
@@ -598,6 +605,7 @@ def _generate_random_room_graph(
         branch_failed = False
         branch_remaining_large = remaining_large
         branch_remaining_small = remaining_small
+        branch_room_count = 0
         for branch_index in range(branch_length):
             is_leaf = branch_index == branch_length - 1
             if branch_type == "major_branch" and is_leaf:
@@ -624,6 +632,7 @@ def _generate_random_room_graph(
             role = _random_room_role(rng, room_size, prefer_combat=not is_leaf)
             parent_depth = int(node_specs[parent_id]["depth"])
             parent_lane = int(node_specs[parent_id]["lane"])
+            next_branch_room_count = branch_room_count + 1
             try:
                 next_depth, next_lane = _choose_open_position(
                     rng,
@@ -637,7 +646,7 @@ def _generate_random_room_graph(
                     max_vertical,
                     node_specs=node_specs,
                     parent_id=parent_id,
-                    reserved_future_large=1 if is_leaf and room_size == "large" else 0,
+                    reserved_future_large=1 if is_leaf and leaf_should_append_portal(room_size, next_branch_room_count) else 0,
                 )
             except ValueError:
                 branch_failed = True
@@ -648,7 +657,8 @@ def _generate_random_room_graph(
             node_specs[next_id]["incoming"].append(parent_id)
             staged_node_ids.append(next_id)
             parent_id = next_id
-            if is_leaf and room_size == "large":
+            branch_room_count = next_branch_room_count
+            if is_leaf and leaf_should_append_portal(room_size, branch_room_count):
                 try:
                     portal_room_id = append_portal_room(next_id, branch_type, f"portal_room_{anchor_id}_{branch_index}")
                 except ValueError:
@@ -695,6 +705,7 @@ def _generate_random_room_graph(
         parent_id = anchor_id
         staged_node_ids: list[int] = []
         branch_failed = False
+        branch_room_count = 0
         for branch_index in range(branch_length):
             is_leaf = branch_index == branch_length - 1
             if branch_type == "major_branch" and is_leaf:
@@ -714,6 +725,7 @@ def _generate_random_room_graph(
             role = _random_room_role(rng, room_size, prefer_combat=not is_leaf)
             parent_depth = int(node_specs[parent_id]["depth"])
             parent_lane = int(node_specs[parent_id]["lane"])
+            next_branch_room_count = branch_room_count + 1
             try:
                 next_depth, next_lane = _choose_open_position(
                     rng,
@@ -727,7 +739,7 @@ def _generate_random_room_graph(
                     max_vertical,
                     node_specs=node_specs,
                     parent_id=parent_id,
-                    reserved_future_large=1 if is_leaf and room_size == "large" else 0,
+                    reserved_future_large=1 if is_leaf and leaf_should_append_portal(room_size, next_branch_room_count) else 0,
                 )
             except ValueError:
                 branch_failed = True
@@ -738,7 +750,8 @@ def _generate_random_room_graph(
             node_specs[next_id]["incoming"].append(parent_id)
             staged_node_ids.append(next_id)
             parent_id = next_id
-            if is_leaf and room_size == "large":
+            branch_room_count = next_branch_room_count
+            if is_leaf and leaf_should_append_portal(room_size, branch_room_count):
                 try:
                     portal_room_id = append_portal_room(next_id, branch_type, f"portal_room_{anchor_id}_extra_{branch_index}")
                 except ValueError:
@@ -761,6 +774,72 @@ def _generate_random_room_graph(
             continue
         if staged_node_ids:
             created_branch_count += 1
+
+    branch_boss_candidates: list[tuple[int, int, int, list[int]]] = []
+    for node_id, spec in node_specs.items():
+        if str(spec.get("branch_type", "")) != "major_branch":
+            continue
+        if bool(spec.get("portal_room", False)) or str(spec.get("size", "")) != "large":
+            continue
+        parent_ids = [int(parent_id) for parent_id in spec.get("incoming", [])]
+        if not parent_ids:
+            continue
+        non_portal_children = [
+            int(child_id)
+            for child_id in spec.get("children", [])
+            if not bool(node_specs[int(child_id)].get("portal_room", False))
+        ]
+        if non_portal_children:
+            continue
+        portal_children = [
+            int(child_id)
+            for child_id in spec.get("children", [])
+            if bool(node_specs[int(child_id)].get("portal_room", False))
+        ]
+        if len(portal_children) > 1:
+            continue
+
+        endpoint_id = portal_children[0] if portal_children else node_id
+        path_ids = [endpoint_id]
+        current_ref = endpoint_id
+        has_backtrack = False
+        while True:
+            incoming_ids = [int(parent_id) for parent_id in node_specs[current_ref].get("incoming", [])]
+            if not incoming_ids:
+                break
+            parent_ref = incoming_ids[0]
+            if int(node_specs[current_ref]["depth"]) < int(node_specs[parent_ref]["depth"]):
+                has_backtrack = True
+            path_ids.append(parent_ref)
+            current_ref = parent_ref
+        if current_ref != start_id or not has_backtrack:
+            continue
+        branch_boss_candidates.append(
+            (
+                len(path_ids),
+                -int(spec["depth"]),
+                abs(int(spec["lane"])),
+                list(reversed(path_ids)),
+            )
+        )
+
+    if branch_boss_candidates:
+        new_main_path_ids = max(branch_boss_candidates)[3]
+        old_boss_id = main_path_ids[-1]
+        new_boss_id = new_main_path_ids[-1]
+        if old_boss_id != new_boss_id:
+            node_specs[old_boss_id]["role"] = "rest"
+            node_specs[old_boss_id]["room_name"] = "主路休整房终点"
+            node_specs[new_boss_id]["role"] = "boss"
+            node_specs[new_boss_id]["room_name"] = "Boss房"
+            node_specs[new_boss_id]["portal_room"] = False
+            main_path_ids = new_main_path_ids
+            main_path_set = set(main_path_ids)
+            for node_id, spec in node_specs.items():
+                if node_id in main_path_set:
+                    spec["branch_type"] = "main_path"
+                elif str(spec.get("branch_type", "")) == "main_path":
+                    spec["branch_type"] = "major_branch" if str(spec.get("size", "")) == "large" else "minor_branch"
 
     nodes: list[GraphRoomNode] = []
     for node_id in sorted(node_specs):

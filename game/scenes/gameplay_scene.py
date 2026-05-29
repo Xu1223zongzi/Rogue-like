@@ -161,7 +161,7 @@ BOSS_EXIT_DOOR_ENTER_TIME = 0.55
 MINOR_SKILL_COOLDOWN = 20.0
 TELEPORT_DEPART_TIME = 0.38
 TELEPORT_ARRIVE_TIME = 0.44
-TELEPORT_ACTIVATE_DISTANCE = max(WINDOW_WIDTH, WINDOW_HEIGHT) * 0.5
+TELEPORT_ACTIVATE_DISTANCE = max(WINDOW_WIDTH, WINDOW_HEIGHT) * 0.32
 TELEPORT_PORTAL_RADIUS = TILE_SIZE
 SWORD_MANIA_DURATION = 10.0
 SWORD_MANIA_MOVE_SPEED_MULTIPLIER = 1.5
@@ -548,6 +548,9 @@ class GameplayScene(Scene):
         self.scene_surface_cache: pygame.Surface | None = None
         self.overlay_surface_cache: dict[str, pygame.Surface] = {}
         self.effect_surface_cache: dict[tuple[str, tuple[int, int]], pygame.Surface] = {}
+        self.developer_mode_enabled = False
+        self.developer_minor_override: str | None = None
+        self.developer_no_cooldown = False
         self.rebuild_teleport_portals()
         self.rebuild_teleport_portals()
         self.active_room_role = self.level.current_room.role
@@ -569,6 +572,49 @@ class GameplayScene(Scene):
             overlay.fill((0, 0, 0, 0))
         return overlay
 
+    def handle_event(self, event: pygame.event.Event) -> None:
+        if event.type != pygame.KEYDOWN:
+            return
+
+        pressed = self.app.input.pressed_keys
+        if not self.developer_mode_enabled:
+            if all(key in pressed for key in (pygame.K_q, pygame.K_e, pygame.K_z, pygame.K_c)):
+                self.developer_mode_enabled = True
+                self.developer_minor_override = None
+                self.developer_no_cooldown = False
+                self.app.input.action_timers["ultimate"] = 0.0
+                self.app.input.action_timers["map_zoom_out"] = 0.0
+                self.app.input.action_timers["interact"] = 0.0
+                self.app.input.action_timers["map_zoom_in"] = 0.0
+                self.set_message("Developer Mode  ON", SUCCESS_COLOR, 0.9)
+            return
+
+        if all(key in pressed for key in (pygame.K_6, pygame.K_7)):
+            self.developer_mode_enabled = False
+            self.developer_minor_override = None
+            self.developer_no_cooldown = False
+            self.set_message("Developer Mode  OFF", ACCENT_COLOR, 0.9)
+            return
+
+        override_map = {
+            pygame.K_1: ("sword", "Dev Minor: Sword T4"),
+            pygame.K_2: ("shield", "Dev Minor: Shield T4"),
+            pygame.K_3: ("control", "Dev Minor: Control T4"),
+            pygame.K_4: ("summon", "Dev Minor: Summon T4"),
+        }
+        override = override_map.get(event.key)
+        if override is not None:
+            self.developer_minor_override = override[0]
+            self.set_message(override[1], SUCCESS_COLOR, 0.9)
+        elif event.key == pygame.K_0:
+            self.developer_minor_override = None
+            self.set_message("Dev Minor Cleared", ACCENT_COLOR, 0.8)
+        elif event.key == pygame.K_9:
+            self.developer_no_cooldown = not self.developer_no_cooldown
+            if self.developer_no_cooldown:
+                self.clear_developer_cooldowns()
+            self.set_message("Dev No CD  ON" if self.developer_no_cooldown else "Dev No CD  OFF", SUCCESS_COLOR if self.developer_no_cooldown else ACCENT_COLOR, 0.8)
+
     def get_effect_surface(self, size: tuple[int, int], key: str) -> pygame.Surface:
         normalized_size = (max(1, int(size[0])), max(1, int(size[1])))
         cache_key = (key, normalized_size)
@@ -579,6 +625,18 @@ class GameplayScene(Scene):
         else:
             effect.fill((0, 0, 0, 0))
         return effect
+
+    def clear_developer_cooldowns(self) -> None:
+        self.fusion_cooldown = 0.0
+        self.halo_cooldown = 0.0
+        self.left_skill_cooldown = 0.0
+        self.right_skill_cooldown = 0.0
+        self.brain_skill_cooldown = 0.0
+        self.brain_rescue_cooldown = 0.0
+        self.minor_skill_cooldown = 0.0
+        self.player.attack_cooldown = 0.0
+        self.player.block_cooldown = 0.0
+        self.player.dash_cooldown = 0.0
 
     def cached_room_pickups(self, room_id: int) -> list[EquipmentPickup]:
         pickups = self.room_pickup_cache.get(room_id)
@@ -686,11 +744,12 @@ class GameplayScene(Scene):
                     continue
                 branch_junction = len(node.child_ids) >= 2 and (node.branch_type in {"major_branch", "minor_branch"} or child.branch_type in {"major_branch", "minor_branch"})
                 branch_large_leaf = child.room_size == "large" and len(child.child_ids) == 0 and child.branch_type in {"major_branch", "minor_branch"}
-                if not branch_junction and not branch_large_leaf:
+                branch_small_leaf = self.branch_small_leaf_needs_portal(child, nodes_by_id)
+                if not branch_junction and not branch_large_leaf and not branch_small_leaf:
                     continue
                 if branch_junction:
                     continue
-                if self.node_uses_teleport_room(child):
+                if self.node_uses_teleport_room(child) or branch_small_leaf:
                     portal = self.build_room_centered_teleport_portal(node, child, target_region)
                     if portal is not None:
                         portals[portal.portal_id] = portal
@@ -699,6 +758,30 @@ class GameplayScene(Scene):
                 if portal is not None:
                     portals[portal.portal_id] = portal
         return sorted(portals.values(), key=lambda portal: (portal.position.x, portal.position.y, portal.portal_id))
+
+    def branch_small_leaf_needs_portal(
+        self,
+        node: GraphRoomNode,
+        nodes_by_id: dict[int, GraphRoomNode],
+    ) -> bool:
+        if node.branch_type not in {"major_branch", "minor_branch"}:
+            return False
+        if node.room_size != "small" or node.child_ids:
+            return False
+        return self.branch_room_count(node, nodes_by_id) >= 3
+
+    def branch_room_count(
+        self,
+        node: GraphRoomNode,
+        nodes_by_id: dict[int, GraphRoomNode],
+    ) -> int:
+        count = 0
+        current: GraphRoomNode | None = node
+        while current is not None and current.branch_type in {"major_branch", "minor_branch"}:
+            count += 1
+            parent_id = current.parent_id
+            current = nodes_by_id.get(parent_id) if parent_id is not None else None
+        return count
 
     def build_start_room_teleport_portal(self, nodes_by_id: dict[int, GraphRoomNode]) -> TeleportPortal | None:
         graph_map = self.level.graph_map
@@ -731,7 +814,8 @@ class GameplayScene(Scene):
     def build_connector_teleport_portals(self, nodes_by_id: dict[int, GraphRoomNode]) -> list[TeleportPortal]:
         portals: list[TeleportPortal] = []
         for placement in getattr(self.level, "connector_placements", []):
-            if len(placement.sides) < 3:
+            component_name = str(getattr(placement.component, "name", ""))
+            if component_name.startswith("基础连接通道/L_"):
                 continue
             portal = self.build_connector_placement_teleport_portal(placement, nodes_by_id)
             if portal is not None:
@@ -766,14 +850,10 @@ class GameplayScene(Scene):
                 candidate_cells.append((distance, col_index, row_index))
         candidate_cells.sort()
 
-        seen_x: set[float] = set()
         for _, col_index, row_index in candidate_cells:
             candidate_x = float((placement.left + col_index) * TILE_SIZE)
             reference_y = float((placement.top + row_index) * TILE_SIZE)
             snapped_x = self.snap_portal_x(candidate_x)
-            if snapped_x in seen_x:
-                continue
-            seen_x.add(snapped_x)
             position = self.portal_position_for_x(snapped_x, reference_y)
             if self.portal_position_is_clear(position):
                 return position
@@ -794,7 +874,12 @@ class GameplayScene(Scene):
         if room_id is None:
             return None
         room_node = nodes_by_id.get(room_id)
-        label = "分叉路口" if room_node is None or not room_node.room_name else f"{room_node.room_name} 分叉"
+        if room_node is None or not room_node.room_name:
+            label = "连接通道"
+        elif len(placement.sides) >= 3:
+            label = f"{room_node.room_name} 分叉"
+        else:
+            label = f"{room_node.room_name} 连接"
         return TeleportPortal(
             portal_id=f"portal_connector_{placement.point[0]}_{placement.point[1]}",
             edge_key=(int(placement.point[0]), int(placement.point[1])),
@@ -986,6 +1071,31 @@ class GameplayScene(Scene):
             return None
         return next((portal for portal in self.teleport_portals if portal.portal_id == portal_id), None)
 
+    def portal_is_revealed_on_map(self, portal: TeleportPortal) -> bool:
+        route_map = self.route_map if self.route_map is not None else self.level.route_map_payload(self.player.center())
+        if route_map is None:
+            return True
+        reveal_radius = max(0.0, float(route_map.get("fog_reveal_radius", 0.0)))
+        if reveal_radius <= 0.0:
+            return True
+        reveal_points = route_map.get("fog_reveal_points", [])
+        radius_sq = reveal_radius * reveal_radius
+        for point in reveal_points:
+            if not isinstance(point, (tuple, list)) or len(point) != 2:
+                continue
+            delta_x = float(point[0]) - portal.position.x
+            delta_y = float(point[1]) - portal.position.y
+            if delta_x * delta_x + delta_y * delta_y <= radius_sq:
+                return True
+        return False
+
+    def indexed_teleport_portals(self) -> list[TeleportPortal]:
+        return [
+            portal
+            for portal in self.teleport_portals
+            if portal.activated and self.portal_is_revealed_on_map(portal)
+        ]
+
     def portal_interaction_rect(self, portal: TeleportPortal) -> pygame.FRect:
         return pygame.FRect(portal.position.x - TILE_SIZE, portal.position.y - TILE_SIZE * 1.5, TILE_SIZE * 2, TILE_SIZE * 3)
 
@@ -1022,23 +1132,24 @@ class GameplayScene(Scene):
         current = self.portal_by_id(self.selected_teleport_portal_id)
         if current is None:
             return
-        direction = Vec2(float(move_x), float(move_y))
-        if direction.length_squared() <= 0.0:
+        if move_x == 0 and move_y == 0:
             return
-        direction = direction.normalize()
-        best_score: tuple[float, float] | None = None
+        axis_is_horizontal = move_x != 0
+        direction_sign = 1 if (move_x if axis_is_horizontal else move_y) > 0 else -1
+        best_score: tuple[float, float, float] | None = None
         best_portal: TeleportPortal | None = None
-        for portal in self.teleport_portals:
+        for portal in self.indexed_teleport_portals():
             if portal.portal_id == current.portal_id:
                 continue
             delta = portal.position - current.position
+            primary_offset = delta.x if axis_is_horizontal else delta.y
+            cross_offset = abs(delta.y) if axis_is_horizontal else abs(delta.x)
+            if primary_offset * direction_sign <= 1.0:
+                continue
             distance = delta.length()
             if distance <= 0.001:
                 continue
-            alignment = delta.normalize().dot(direction)
-            if alignment < 0.28:
-                continue
-            score = (-alignment, distance)
+            score = (abs(primary_offset), cross_offset, distance)
             if best_score is None or score < best_score:
                 best_score = score
                 best_portal = portal
@@ -1590,6 +1701,26 @@ class GameplayScene(Scene):
             return min(reachable_planes, key=lambda plane_y: (abs(plane_y - support_y), plane_y))
         return min(plane_tops, key=lambda plane_y: (abs(plane_y - support_y), plane_y))
 
+    def sword_rain_target_for_x(self, preferred_x: float) -> Vec2:
+        room = self.level.current_room
+        clamped_x = max(40.0, min(room.world_width - 40.0, preferred_x))
+        reference_y = self.support_plane_y_for_x(self.player.center().x, self.player.rect.bottom)
+        snapped_x = self.snap_portal_x(clamped_x)
+        candidate_xs: list[float] = []
+        for tile_offset in range(0, 5):
+            offsets = (0.0,) if tile_offset == 0 else (-TILE_SIZE * tile_offset, TILE_SIZE * tile_offset)
+            for offset in offsets:
+                candidate_x = max(40.0, min(room.world_width - 40.0, snapped_x + offset))
+                if any(abs(candidate_x - existing_x) < 1.0 for existing_x in candidate_xs):
+                    continue
+                candidate_xs.append(candidate_x)
+
+        for candidate_x in candidate_xs:
+            if not self.portal_column_is_walkable(candidate_x, reference_y):
+                continue
+            return Vec2(candidate_x, self.sword_rain_plane_y_for_x(candidate_x))
+        return Vec2(clamped_x, self.sword_rain_plane_y_for_x(clamped_x))
+
     def point_segment_distance(self, point: Vec2, start: Vec2, end: Vec2) -> float:
         segment = end - start
         length_sq = segment.length_squared()
@@ -1600,6 +1731,8 @@ class GameplayScene(Scene):
         return (point - closest).length()
 
     def displace_enemy_from_halo(self, enemy: Enemy, center: Vec2, halo_radius: float, push_distance: float) -> None:
+        if enemy.has_unstoppable_boss_slash():
+            return
         delta = enemy.center() - center
         distance = delta.length()
         if distance <= 0.001:
@@ -1617,6 +1750,8 @@ class GameplayScene(Scene):
         enemy.stun_timer = max(enemy.stun_timer, 0.18 + 0.04 * max(0, self.halo_cast_tier - 1))
 
     def launch_enemy_from_halo(self, enemy: Enemy, center: Vec2, halo_radius: float, push_distance: float, tier: int) -> None:
+        if enemy.has_unstoppable_boss_slash():
+            return
         delta = enemy.center() - center
         distance = delta.length()
         if distance <= 0.001:
@@ -1685,14 +1820,20 @@ class GameplayScene(Scene):
             delta = enemy.center() - center
             if delta.length() > halo_radius + max(enemy.rect.width, enemy.rect.height) * 0.45:
                 continue
+            unstoppable_boss_slash = enemy.has_unstoppable_boss_slash()
             took_wave_damage = False
             if damage > 0:
                 reduced_damage = max(1, int(round(damage * (0.45 if enemy.is_boss else 1.0))))
                 if self.damage_enemy(enemy, reduced_damage, 0.10, "halo_wave"):
-                    enemy.stun_timer = max(enemy.stun_timer, 0.20)
+                    if not unstoppable_boss_slash:
+                        enemy.stun_timer = max(enemy.stun_timer, 0.20)
                     hits += 1
                     took_wave_damage = True
+            elif enemy.is_boss:
+                self.register_halo_boss_tag(enemy)
             self.launch_enemy_from_halo(enemy, center, halo_radius, push_distance, tier)
+            if unstoppable_boss_slash:
+                continue
             enemy.velocity.x *= 0.84 if enemy.is_boss else 0.90
             enemy.velocity.y *= 0.74 if enemy.is_boss else 0.82
             enemy.halo_launch_timer = max(enemy.halo_launch_timer, 0.22 + 0.02 * max(0, tier - 3))
@@ -1796,6 +1937,8 @@ class GameplayScene(Scene):
         self.brain_sword_fx_timer = max(0.0, self.brain_sword_fx_timer - delta_time)
         self.brain_scripture_fx_timer = max(0.0, self.brain_scripture_fx_timer - delta_time)
         self.minor_skill_cooldown = max(0.0, self.minor_skill_cooldown - delta_time)
+        if self.developer_mode_enabled and self.developer_no_cooldown:
+            self.clear_developer_cooldowns()
         self.sword_mania_timer = max(0.0, self.sword_mania_timer - delta_time)
         self.steel_guard_timer = max(0.0, self.steel_guard_timer - delta_time)
         self.oppression_field_timer = max(0.0, self.oppression_field_timer - delta_time)
@@ -2004,11 +2147,32 @@ class GameplayScene(Scene):
 
         total_damage += projectile_damage
         if total_damage > 0:
+            death_ward_triggered = self.player.death_ward_triggered
             scripture_triggered = self.try_trigger_brain_rescue()
             self.apply_sanity_damage(total_damage)
             self.add_screen_shake(0.22)
-            if not scripture_triggered:
+            if death_ward_triggered:
+                self.impact_bursts.append(
+                    ImpactBurst(
+                        center=self.player.center(),
+                        life=0.32,
+                        max_life=0.32,
+                        tint=PLAYER_PARRY_COLOR,
+                        accent_tint=RIFT_SLASH_ACCENT,
+                        radius=96.0,
+                        spoke_count=16,
+                    )
+                )
+                self.player_afterimages.extend(
+                    [
+                        {"rect": self.player.rect.inflate(10, 6), "life": PLAYER_AFTERIMAGE_LIFETIME},
+                        {"rect": self.player.rect.inflate(26, 14), "life": PLAYER_AFTERIMAGE_LIFETIME * 0.72},
+                    ]
+                )
+                self.set_message("Paladin Heart: Death Ward", PLAYER_PARRY_COLOR, 0.7)
+            elif not scripture_triggered:
                 self.set_message(f"Took {total_damage} damage", DANGER_COLOR, 0.35)
+            self.player.death_ward_triggered = False
 
         if not self.current_room_has_live_enemies() and self.level.current_room_index not in self.cleared_room_ids:
             self.cleared_room_ids.add(self.level.current_room_index)
@@ -2070,6 +2234,8 @@ class GameplayScene(Scene):
             self.control_duration_multiplier = 1.5
         elif control_tier >= 2:
             self.control_duration_multiplier = 1.3
+        if self.fusion_timer <= 0.0 or self.halo_timer > 0.0 or self.equipment.equipped["heart"] != "knight_heart" or tier < 4:
+            self.player.death_ward_available = False
         self.player.attack_damage_bonus = PALADIN_FUSION_BONUS_DAMAGE if self.fusion_timer > 0.0 else 0
         self.player.dash_locked = self.fusion_timer > 0.0
         self.player.forced_move_speed = PALADIN_FUSION_SPEED if self.fusion_timer > 0.0 else 0.0
@@ -2085,6 +2251,8 @@ class GameplayScene(Scene):
         self.player.jump_multiplier = 0.62 if self.fusion_timer > 0.0 else 1.0
 
     def minor_tier(self, archetype: str) -> int:
+        if self.developer_mode_enabled and self.developer_minor_override == archetype:
+            return 4
         return knight_minor_tier(self.equipment, archetype)
 
     def player_damage_value(self, amount: int, source: str) -> int:
@@ -2271,7 +2439,9 @@ class GameplayScene(Scene):
     def activate_oppression_field(self) -> int:
         radius = OPPRESSION_FIELD_RADIUS
         affected = 0
-        self.oppression_field_center = self.player.center().copy()
+        field_center_x = self.player.center().x
+        field_ground_y = self.support_plane_y_for_x(field_center_x, self.player.rect.bottom)
+        self.oppression_field_center = Vec2(field_center_x, field_ground_y)
         self.oppression_field_radius = radius
         self.oppression_field_duration = OPPRESSION_FIELD_VISUAL_TIME
         self.oppression_field_timer = OPPRESSION_FIELD_VISUAL_TIME
@@ -2292,7 +2462,7 @@ class GameplayScene(Scene):
             )
             affected += 1
         if affected > 0:
-            self.emit_minor_particles(self.player.center(), OPPRESSION_TINT, OPPRESSION_ACCENT, 26, radius=radius * 0.42, upward_bias=24.0)
+            self.emit_minor_particles(self.oppression_field_center, OPPRESSION_TINT, OPPRESSION_ACCENT, 26, radius=radius * 0.42, upward_bias=24.0)
             self.add_screen_shake(0.24)
         return affected
 
@@ -2443,12 +2613,23 @@ class GameplayScene(Scene):
             return
         self.change_sanity(self.sanity_reward_for_kill(kill_method, enemy))
 
+    def register_halo_boss_tag(self, enemy: Enemy) -> None:
+        if not enemy.alive or not enemy.is_boss or not self.player.has_halo_barrier():
+            return
+        halo_center = self.player.center()
+        halo_radius = self.player.halo_barrier_radius
+        tag_radius = halo_radius + max(enemy.rect.width, enemy.rect.height) * 0.45
+        if (enemy.center() - halo_center).length() > tag_radius:
+            return
+        self.player.register_halo_barrier_hit()
+
     def damage_enemy(self, enemy: Enemy, amount: int, invuln: float, kill_method: str, ignore_invulnerability: bool = False) -> bool:
         if enemy.is_friendly:
             return False
         was_alive = enemy.alive
         if not enemy.take_damage(amount, invuln, ignore_invulnerability):
             return False
+        self.register_halo_boss_tag(enemy)
         self.on_player_hits(1)
         if was_alive and not enemy.alive:
             self.reward_sanity_for_kill(enemy, kill_method)
@@ -2464,8 +2645,9 @@ class GameplayScene(Scene):
                 continue
             if not self.damage_enemy(enemy, self.player_damage_value(PLAYER_ATTACK_DAMAGE + self.player.attack_damage_bonus, "melee"), ENEMY_IFRAMES, "melee"):
                 continue
-            enemy.velocity.x = 180.0 * self.player.facing
-            enemy.velocity.y = -120.0
+            if not enemy.has_unstoppable_boss_slash():
+                enemy.velocity.x = 180.0 * self.player.facing
+                enemy.velocity.y = -120.0
             hits += 1
         return hits
 
@@ -2835,6 +3017,7 @@ class GameplayScene(Scene):
             self.halo_pulse_timer = 0.34 if tier >= 4 else 0.0
             self.halo_end_pulse_pending = tier == 3
             self.left_skill_cooldown = PALADIN_HALO_COOLDOWN
+            self.player.death_ward_available = False
             if knight_halo_activation_push_px(tier) > 0.0:
                 halo_center = self.player.center()
                 halo_radius = knight_halo_radius_px(tier)
@@ -2853,6 +3036,7 @@ class GameplayScene(Scene):
                     if boss_breaking_barrier:
                         enemy.velocity.x *= 0.88
                         continue
+                    self.register_halo_boss_tag(enemy)
                     self.launch_enemy_from_halo(enemy, halo_center, halo_radius, knight_halo_activation_push_px(tier), tier)
             self.set_message("Sanctuary Halo", SUCCESS_COLOR, 0.5)
         elif item_id == "knight_left_eye_blade":
@@ -2956,9 +3140,7 @@ class GameplayScene(Scene):
                     target_xs.append(self.player.center().x + (band_x - room.world_width * 0.5) * 0.92)
 
             for index, raw_x in enumerate(target_xs[:count]):
-                target_x = max(40.0, min(room.world_width - 40.0, raw_x))
-                target_y = self.sword_rain_plane_y_for_x(target_x)
-                target = Vec2(target_x, target_y)
+                target = self.sword_rain_target_for_x(raw_x)
                 angle_deg = random.uniform(80.0, 110.0)
                 angle_rad = math.radians(angle_deg)
                 direction = Vec2(math.cos(angle_rad), math.sin(angle_rad))
@@ -2995,7 +3177,7 @@ class GameplayScene(Scene):
         self.set_message("Meteor Lances" if tier >= 4 else "Sword Rain", PLAYER_PARRY_COLOR, 0.45)
 
     def cast_knight_spirit(self) -> None:
-        tier = knight_tier(self.equipment)
+        tier = effective_tier_for_slot(self.equipment, "right_eye")
         if tier <= 0:
             return
         if tier >= 4:
@@ -3010,13 +3192,26 @@ class GameplayScene(Scene):
             if enemy.is_boss:
                 continue
             delta = enemy.center() - self.player.center()
-            if delta.length() > range_px:
+            forward_distance = delta.x * self.player.facing
+            if forward_distance < -enemy.rect.width * 0.2 or forward_distance > range_px:
                 continue
-            if delta.x * self.player.facing < 0.0:
+            if abs(delta.y) > max(TILE_SIZE * 3.0, enemy.rect.height * 1.6):
                 continue
             enemy.is_friendly = True
             enemy.friendly_role = "controlled"
             enemy.summon_timer = 0.0
+            enemy.invulnerability = max(enemy.invulnerability, 0.18)
+            enemy.contact_cooldown = max(enemy.contact_cooldown, 0.18)
+            enemy.velocity.x = 0.0
+            enemy.attack_startup_timer = 0.0
+            enemy.attack_timer = 0.0
+            enemy.attack_recovery_timer = 0.0
+            enemy.attack_has_hit = False
+            enemy.hurt_timer = 0.0
+            enemy.stun_timer = max(enemy.stun_timer, 0.16)
+            enemy.action_state = "ally"
+            enemy.movement_state = "escort"
+            enemy.facing = self.player.facing
             enemy.ally_platform_target = None
             enemy.ally_platform_jump_start = None
             enemy.ally_platform_snap_timer = 0.0
@@ -3037,7 +3232,7 @@ class GameplayScene(Scene):
 
         summoned = 0
         room = self.level.current_room
-        candidate_offsets = [120.0, -120.0, 196.0, -196.0, 272.0, -272.0]
+        candidate_offsets = [128.0, -128.0, 224.0, -224.0, 320.0, -320.0, 416.0, -416.0]
         used_xs: list[float] = [enemy.rect.centerx for enemy in existing_elites]
         for offset in candidate_offsets:
             if len(existing_elites) + summoned >= min(summon_count, ELITE_KNIGHT_SUMMON_CAP):
@@ -3048,12 +3243,18 @@ class GameplayScene(Scene):
             plane_y = self.nearest_plane_y_for_x(world_x, self.player.center().y)
             spawn_position = Vec2(world_x - 16.0, plane_y - 42.0)
             elite = self.spawn_enemy_instance(spawn_position, "elite_knight", None)
+            candidate_rect = elite.rect.inflate(12, 8)
+            if candidate_rect.colliderect(self.player.rect.inflate(24, 12)):
+                continue
+            if any(candidate_rect.colliderect(other.rect.inflate(12, 8)) for other in self.enemies if other.alive and other.is_friendly and other.enemy_type == "elite_knight"):
+                continue
             elite.is_friendly = True
             elite.friendly_role = "summon"
             elite.health = elite.max_health
             elite.invulnerability = max(elite.invulnerability, 0.3)
             elite.ally_jump_grace_timer = 0.28
             elite.facing = 1 if offset >= 0.0 else -1
+            elite.ally_formation_offset_x = 52.0 if offset >= 0.0 else -52.0
             elite.patrol_origin_x = elite.rect.x
             elite.summon_timer = ELITE_KNIGHT_SUMMON_DURATION
             self.enemies.append(elite)
@@ -3086,9 +3287,10 @@ class GameplayScene(Scene):
                     continue
                 ally.attack_has_hit = True
                 if self.damage_enemy(hostile, int(ally.attack_stats()["damage"]), 0.18, "ally_melee"):
-                    hostile.velocity.x = 180.0 * ally.facing
-                    hostile.velocity.y = -120.0
-                    hostile.stun_timer = max(hostile.stun_timer, 0.28)
+                    if not hostile.has_unstoppable_boss_slash():
+                        hostile.velocity.x = 180.0 * ally.facing
+                        hostile.velocity.y = -120.0
+                        hostile.stun_timer = max(hostile.stun_timer, 0.28)
                 break
 
     def update_active_skill_effects(self, delta_time: float) -> None:
@@ -3112,6 +3314,8 @@ class GameplayScene(Scene):
                     continue
                 delta = enemy.center() - halo_center
                 if delta.length() < halo_radius:
+                    if enemy.has_unstoppable_boss_slash():
+                        continue
                     boss_rift_super_armor = enemy.is_boss and (
                         enemy.rift_intent_timer > 0.0
                         or enemy.attack_profile == "rift"
@@ -4342,7 +4546,7 @@ class GameplayScene(Scene):
             overlay = self.get_overlay_surface(surface, "oppression_minor")
             ratio = self.oppression_field_timer / self.oppression_field_duration if self.oppression_field_duration > 0.0 else 0.0
             center = self.oppression_field_center - self.camera
-            ground_y = int(self.player.rect.bottom - self.camera.y + 4)
+            ground_y = int(center.y + 4)
             start_x = int(center.x - self.oppression_field_radius)
             end_x = int(center.x + self.oppression_field_radius)
             pygame.draw.line(overlay, (*OPPRESSION_TINT, int(126 * ratio)), (start_x, ground_y), (end_x, ground_y), width=4)
@@ -4540,8 +4744,11 @@ class GameplayScene(Scene):
             self.draw_actor(scene_surface, enemy, ENEMY_DRAW_COLORS)
             self.draw_enemy_health(scene_surface, enemy)
 
+        player_alpha = 255
+        if self.boss_exit_door_entering and BOSS_EXIT_DOOR_ENTER_TIME > 0.0:
+            player_alpha = int(255 * max(0.0, min(1.0, self.boss_exit_door_enter_timer / BOSS_EXIT_DOOR_ENTER_TIME)))
         if not self.room_intro_active or self.room_intro_player_visible:
-            self.draw_actor(scene_surface, self.player, PLAYER_DRAW_COLORS)
+            self.draw_actor(scene_surface, self.player, PLAYER_DRAW_COLORS, alpha=player_alpha)
         self.draw_room_intro_door(scene_surface)
         self.draw_boss_exit_door(scene_surface)
         if self.player.attack_timer > 0.0:
@@ -4725,7 +4932,17 @@ class GameplayScene(Scene):
             overlay.blit(full_flash, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
         surface.blit(overlay, (0, 0))
 
-    def draw_actor(self, surface: pygame.Surface, actor, colors: tuple[tuple[int, int, int], tuple[int, int, int]]) -> None:
+    def draw_actor(
+        self,
+        surface: pygame.Surface,
+        actor,
+        colors: tuple[tuple[int, int, int], tuple[int, int, int]],
+        alpha: int = 255,
+    ) -> None:
+        draw_surface = surface
+        draw_alpha = max(0, min(255, int(alpha)))
+        if draw_alpha < 255:
+            draw_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA).convert_alpha()
         rect = pygame.Rect(int(actor.rect.x - self.camera.x), int(actor.rect.y - self.camera.y), int(actor.rect.width), int(actor.rect.height))
         enemy_launch_ratio = 0.0
         enemy_launch_spin = 0.0
@@ -4757,8 +4974,13 @@ class GameplayScene(Scene):
             shadow_rect.width = max(10, int(shadow_rect.width * (1.0 - 0.28 * enemy_launch_ratio)))
             shadow_rect.height = max(5, int(shadow_rect.height * (1.0 - 0.22 * enemy_launch_ratio)))
             shadow_rect.centerx = rect.centerx
-        pygame.draw.ellipse(surface, SHADOW_COLOR, shadow_rect)
+        pygame.draw.ellipse(draw_surface, SHADOW_COLOR, shadow_rect)
+        actor_key = "player"
+        actor_states = [actor.action_state, actor.movement_state, "default"]
+        if isinstance(actor, Enemy):
+            actor_key = actor.enemy_type
         base_color = actor.current_color(*colors)
+        sprite_drawn = False
         if isinstance(actor, Enemy):
             enemy_darkness = self.enemy_darkness_factor(actor, surface.get_size())
             base_color = actor.current_color(ALLY_COLOR if actor.is_friendly else actor.body_color, colors[1])
@@ -4774,12 +4996,12 @@ class GameplayScene(Scene):
             if enemy_darkness > 0.0:
                 base_color = tuple(max(14, int(channel * (1.0 - enemy_darkness * 0.82))) for channel in base_color)
             if enemy_launch_ratio > 0.0:
-                trail = self.get_overlay_surface(surface, "enemy_launch_trail")
+                trail = self.get_overlay_surface(draw_surface, "enemy_launch_trail")
                 trail_start = (rect.centerx - int(enemy_launch_spin * 18.0), rect.centery + int(3.0 * enemy_launch_ratio))
                 trail_end = (rect.centerx, rect.centery)
                 pygame.draw.line(trail, (*HALO_WAVE_COLOR, int(92 * enemy_launch_ratio)), trail_start, trail_end, width=max(2, int(5 * enemy_launch_ratio)))
                 pygame.draw.line(trail, (*HALO_WAVE_ACCENT, int(62 * enemy_launch_ratio)), (trail_start[0], trail_start[1] - 8), (trail_end[0], trail_end[1] - 4), width=max(1, int(3 * enemy_launch_ratio)))
-                surface.blit(trail, (0, 0))
+                draw_surface.blit(trail, (0, 0))
         if actor is self.player and self.fusion_timer > 0.0:
             base_color = tuple(min(255, channel + boost) for channel, boost in zip(base_color, (18, 12, 24)))
         if actor is self.player and self.sword_mania_timer > 0.0:
@@ -4792,36 +5014,43 @@ class GameplayScene(Scene):
         if actor is self.player and self.steel_guard_timer > 0.0:
             steel_ratio = min(1.0, self.steel_guard_timer / STEEL_GUARD_DURATION if STEEL_GUARD_DURATION > 0.0 else 1.0)
             base_color = tuple(min(255, int(channel * (1.08 + steel_ratio * 0.24) + 44 * steel_ratio)) for channel in base_color)
-        pygame.draw.rect(surface, base_color, rect, border_radius=8)
+        if hasattr(self.app, "resources"):
+            sprite_drawn = self.app.resources.draw_actor_sprite(draw_surface, actor_key, actor_states, rect, actor.facing, alpha=255)
+        if not sprite_drawn:
+            pygame.draw.rect(draw_surface, base_color, rect, border_radius=8)
         if actor is self.player and self.steel_guard_timer > 0.0:
             shine_ratio = 0.45 + 0.55 * math.sin(pygame.time.get_ticks() * 0.012)
             shine_color = tuple(min(255, int(channel * 0.78 + 92 * shine_ratio)) for channel in STEEL_GUARD_ACCENT)
-            pygame.draw.line(surface, shine_color, (rect.x + 6, rect.y + 8), (rect.right - 6, rect.y + 18), width=3)
-            pygame.draw.line(surface, shine_color, (rect.x + 10, rect.y + 22), (rect.right - 10, rect.y + 30), width=2)
+            pygame.draw.line(draw_surface, shine_color, (rect.x + 6, rect.y + 8), (rect.right - 6, rect.y + 18), width=3)
+            pygame.draw.line(draw_surface, shine_color, (rect.x + 10, rect.y + 22), (rect.right - 10, rect.y + 30), width=2)
         if enemy_launch_ratio > 0.0:
-            pygame.draw.rect(surface, (*HALO_WAVE_ACCENT,), rect.inflate(4, 2), width=max(2, int(3 * enemy_launch_ratio)), border_radius=10)
-        if actor is self.player:
-            self.draw_player_details(surface, rect)
+            pygame.draw.rect(draw_surface, (*HALO_WAVE_ACCENT,), rect.inflate(4, 2), width=max(2, int(3 * enemy_launch_ratio)), border_radius=10)
+        if actor is self.player and not sprite_drawn:
+            self.draw_player_details(draw_surface, rect)
         if actor.action_state == "block":
-            pygame.draw.rect(surface, PLAYER_BLOCK_COLOR, rect.inflate(8, 4), width=3, border_radius=10)
+            pygame.draw.rect(draw_surface, PLAYER_BLOCK_COLOR, rect.inflate(8, 4), width=3, border_radius=10)
         elif actor.action_state == "parry":
-            pygame.draw.rect(surface, PLAYER_PARRY_COLOR, rect.inflate(12, 8), width=4, border_radius=12)
+            pygame.draw.rect(draw_surface, PLAYER_PARRY_COLOR, rect.inflate(12, 8), width=4, border_radius=12)
         elif actor.action_state == "guard":
-            pygame.draw.rect(surface, PLAYER_BLOCK_COLOR, rect.inflate(14, 6), width=4, border_radius=14)
+            pygame.draw.rect(draw_surface, PLAYER_BLOCK_COLOR, rect.inflate(14, 6), width=4, border_radius=14)
         if actor is self.player and self.parry_clash_enemy is not None:
             contact = self.get_parry_contact_point(self.parry_clash_enemy)
             hand = (rect.centerx + actor.facing * 6, rect.y + 16)
             blade_tip = (int(contact.x - self.camera.x), int(contact.y - self.camera.y))
-            pygame.draw.line(surface, ATTACK_COLOR, hand, blade_tip, width=5)
+            pygame.draw.line(draw_surface, ATTACK_COLOR, hand, blade_tip, width=5)
             guard = (hand[0] + actor.facing * 8, hand[1] + 4)
-            pygame.draw.line(surface, PLAYER_PARRY_COLOR, (guard[0], guard[1] - 5), (guard[0], guard[1] + 5), width=3)
-        if isinstance(actor, Enemy):
-            self.draw_enemy_details(surface, actor, rect, enemy_darkness)
-        eye_x = rect.centerx + actor.facing * 7
-        eye_color = (18, 22, 28)
-        if isinstance(actor, Enemy) and enemy_darkness > 0.0:
-            eye_color = tuple(max(10, int(channel * (1.0 - enemy_darkness * 0.72))) for channel in eye_color)
-        pygame.draw.circle(surface, eye_color, (eye_x, rect.y + 16), 3)
+            pygame.draw.line(draw_surface, PLAYER_PARRY_COLOR, (guard[0], guard[1] - 5), (guard[0], guard[1] + 5), width=3)
+        if isinstance(actor, Enemy) and not sprite_drawn:
+            self.draw_enemy_details(draw_surface, actor, rect, enemy_darkness)
+        if not sprite_drawn:
+            eye_x = rect.centerx + actor.facing * 7
+            eye_color = (18, 22, 28)
+            if isinstance(actor, Enemy) and enemy_darkness > 0.0:
+                eye_color = tuple(max(10, int(channel * (1.0 - enemy_darkness * 0.72))) for channel in eye_color)
+            pygame.draw.circle(draw_surface, eye_color, (eye_x, rect.y + 16), 3)
+        if draw_surface is not surface:
+            draw_surface.set_alpha(draw_alpha)
+            surface.blit(draw_surface, (0, 0))
 
     def draw_player_details(self, surface: pygame.Surface, rect: pygame.Rect) -> None:
         chest = pygame.Rect(rect.x + 5, rect.y + 8, rect.width - 10, rect.height // 2)

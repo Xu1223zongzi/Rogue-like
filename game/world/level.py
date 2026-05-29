@@ -6,15 +6,16 @@ import random
 import pygame
 
 from game.config import PLATFORM_COLOR, SOLID_COLOR, SOLID_EDGE, TILE_SIZE, WINDOW_HEIGHT, WINDOW_WIDTH
-from game.world.assembled_world import ConnectorPlacement, assemble_embedded_world
+from game.world.assembled_world import AssemblyError, ConnectorPlacement, assemble_embedded_world
 from game.world.graph_map import GraphMapData, GraphRoomNode, generate_room_graph, load_room_grid
 
 
 Vec2 = pygame.Vector2
 DEFAULT_MAP_FOLDER = "第二张地图"
 MAP_REVEAL_SNAP = 48
-MAP_REVEAL_RADIUS = min(WINDOW_WIDTH, WINDOW_HEIGHT) * 0.72
+MAP_REVEAL_RADIUS = min(WINDOW_WIDTH, WINDOW_HEIGHT) * 0.9
 COLLISION_CHUNK_SIZE = TILE_SIZE * 8
+LEVEL_BUILD_RETRY_LIMIT = 8
 
 FIXTURE_MARKERS = {
     "h": {"slot": "heart", "item_id": "knight_heart", "context": "altar"},
@@ -183,7 +184,23 @@ class LevelState:
         self.revealed_map_points: set[tuple[int, int]] = set()
 
     def _build_rooms(self) -> list[Room]:
-        graph_map = generate_room_graph(self.seed, self.floor_number, map_folder=DEFAULT_MAP_FOLDER)
+        graph_map: GraphMapData | None = None
+        assembly = None
+        build_seed = self.seed
+        last_error: Exception | None = None
+        for attempt in range(LEVEL_BUILD_RETRY_LIMIT):
+            build_seed = self.seed + attempt
+            try:
+                graph_map = generate_room_graph(build_seed, self.floor_number, map_folder=DEFAULT_MAP_FOLDER)
+                assembly = assemble_embedded_world(graph_map, build_seed)
+                break
+            except (AssemblyError, ValueError) as error:
+                last_error = error
+        if graph_map is None or assembly is None:
+            raise RuntimeError(f"Failed to build level after {LEVEL_BUILD_RETRY_LIMIT} attempts") from last_error
+
+        self.seed = build_seed
+        self.generation_seed = build_seed
         generated_rooms: list[Room] = []
         for node in graph_map.nodes:
             room_grid = load_room_grid(graph_map, node.node_id)
@@ -195,7 +212,7 @@ class LevelState:
                     node.room_type,
                     node.room_size,
                     self.loop_count,
-                    self.seed,
+                    build_seed,
                 )
             )
 
@@ -209,7 +226,6 @@ class LevelState:
         self.branch_cells = graph_map.branch_cells
         self.room_cells = graph_map.room_cells
 
-        assembly = assemble_embedded_world(graph_map, self.seed)
         self.connector_placements = assembly.connector_placements[:]
         world_width = len(assembly.char_map[0]) * TILE_SIZE
         world_height = len(assembly.char_map) * TILE_SIZE
@@ -228,7 +244,7 @@ class LevelState:
             )
 
         self.corridor_conflicts = assembly.debug_lines[:]
-        self.floor_room = build_room(-1, "Embedded Floor", assembly.char_map, "start", "large", self.loop_count, self.seed)
+        self.floor_room = build_room(-1, "Embedded Floor", assembly.char_map, "start", "large", self.loop_count, build_seed)
         self.floor_room.player_spawn = Vec2(assembly.start_world)
         self.floor_room.exit_rect = assembly.exit_rect.copy()
         self.floor_room.retreat_rect = None
@@ -236,7 +252,7 @@ class LevelState:
         self.floor_room.world_height = world_height
         self.floor_solid_spatial_index = build_collision_spatial_index(self.floor_room.solids)
         self.floor_semisolid_spatial_index = build_collision_spatial_index(self.floor_room.semisolids)
-        self.corridor_enemy_spawns = generate_corridor_enemy_spawns(assembly.char_map, self.graph_nodes, self.room_regions, self.seed)
+        self.corridor_enemy_spawns = generate_corridor_enemy_spawns(assembly.char_map, self.graph_nodes, self.room_regions, build_seed)
         self.is_embedded_world_map = True
         return embedded_rooms
 

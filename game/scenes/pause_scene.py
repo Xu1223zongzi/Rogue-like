@@ -4,6 +4,7 @@ import pygame
 
 from game.config import ACCENT_COLOR, PANEL_BORDER, PANEL_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
 from game.core.scene import Scene
+from game.rendering import draw_ui_panel_box
 
 
 class PauseScene(Scene):
@@ -24,8 +25,7 @@ class PauseScene(Scene):
 
         panel = pygame.Rect(0, 0, 420, 210)
         panel.center = (WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
-        pygame.draw.rect(surface, PANEL_COLOR, panel, border_radius=16)
-        pygame.draw.rect(surface, PANEL_BORDER, panel, width=2, border_radius=16)
+        draw_ui_panel_box(self.app, surface, "pause_panel", panel, PANEL_COLOR, PANEL_BORDER, border_radius=16)
 
         title = self.app.get_font(34, bold=True).render("已暂停", True, TEXT_COLOR)
         line = self.app.get_font(22).render("按 Esc 返回游戏", True, ACCENT_COLOR)

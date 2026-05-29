@@ -102,6 +102,17 @@ ALLY_ELITE_PLATFORM_SCAN_HEIGHT = ANIMAL_SUMMON_PLATFORM_SCAN_HEIGHT
 ALLY_ELITE_PLATFORM_JUMP_MIN_TIME = ANIMAL_SUMMON_PLATFORM_JUMP_MIN_TIME
 ALLY_ELITE_PLATFORM_JUMP_MAX_TIME = ANIMAL_SUMMON_PLATFORM_JUMP_MAX_TIME
 ALLY_ELITE_PLATFORM_JUMP_ARC = ANIMAL_SUMMON_PLATFORM_JUMP_ARC
+ALLY_ELITE_RETURN_DISTANCE_X = TILE_SIZE * 3.0
+ALLY_ELITE_STOP_DISTANCE_X = TILE_SIZE * 1.0
+ALLY_ELITE_RETURN_ACCEL = 1480.0
+ALLY_ELITE_RETURN_SPEED_MULTIPLIER = 1.45
+ALLY_ELITE_SUMMON_WINDUP_MIN = 0.16
+ALLY_ELITE_SUMMON_RECOVERY_MIN = 0.18
+ENEMY_PATROL_LEFT_RATIO = 0.46
+ENEMY_PATROL_RIGHT_RATIO = 0.82
+ENEMY_SEARCH_STEP = TILE_SIZE * 2.4
+ENEMY_TURN_POINT_SCAN = TILE_SIZE * 0.95
+ENEMY_TURN_POINT_HEIGHT = TILE_SIZE * 0.85
 
 ATTACK_PROFILES = {
     "jab": {
@@ -363,6 +374,7 @@ class Player(PhysicsActor):
     temporary_shield: int = 0
     shield_timer: float = 0.0
     death_ward_available: bool = False
+    death_ward_triggered: bool = False
     last_damage_taken: int = 0
     perfect_avoid_timer: float = 0.0
     boss_rift_bait_timer: float = 0.0
@@ -472,8 +484,16 @@ class Player(PhysicsActor):
     def has_perfect_avoid(self) -> bool:
         return self.perfect_avoid_timer > 0.0
 
+    def register_halo_barrier_hit(self) -> None:
+        if not self.has_halo_barrier():
+            return
+        self.halo_barrier_hit_count += 1
+        if self.halo_barrier_hit_count >= 2:
+            self.prime_boss_rift_bait(1.0, duration=max(self.halo_barrier_timer, 0.9))
+
     def take_damage(self, amount: int, invuln: float, ignore_invulnerability: bool = False, true_damage: bool = False) -> bool:
         self.last_damage_taken = 0
+        self.death_ward_triggered = False
         effective_amount = max(1, int(amount if true_damage else round(amount / max(0.25, self.defense_multiplier))))
         if self.temporary_shield > 0:
             absorbed = min(self.temporary_shield, effective_amount)
@@ -488,6 +508,7 @@ class Player(PhysicsActor):
         if self.death_ward_available and self.health - effective_amount <= 0:
             self.health = 1
             self.death_ward_available = False
+            self.death_ward_triggered = True
             self.invulnerability = max(self.invulnerability, invuln)
             self.flash_timer = 0.2
             self.hurt_timer = PLAYER_HURT_STUN * 0.6
@@ -500,10 +521,6 @@ class Player(PhysicsActor):
             return False
 
         self.last_damage_taken = effective_amount
-        if self.has_halo_barrier():
-            self.halo_barrier_hit_count += 1
-            if self.halo_barrier_hit_count >= 2:
-                self.prime_boss_rift_bait(1.0, duration=max(self.halo_barrier_timer, 0.9))
 
         if self.alive:
             self.hurt_timer = PLAYER_HURT_STUN
@@ -555,7 +572,6 @@ class Player(PhysicsActor):
         self.boss_rift_bait_timer = 0.0
         self.boss_rift_bait_chance = 0.0
         self.boss_rift_bait_retry_timer = 0.0
-        self.halo_barrier_hit_count = 0
         return True
 
     def update(
@@ -760,12 +776,19 @@ class Enemy(PhysicsActor):
     rest_timer: float = 0.0
     aggro_memory_timer: float = 0.0
     last_seen_position: Vec2 = field(default_factory=Vec2)
+    patrol_target_x: float | None = None
+    patrol_leg_direction: int = -1
+    search_target_x: float | None = None
+    had_visual_last_frame: bool = False
     attack_startup_timer: float = 0.0
     attack_timer: float = 0.0
     attack_recovery_timer: float = 0.0
     attack_has_hit: bool = False
     attack_profile: str = "cleave"
     rift_intent_timer: float = 0.0
+    rift_escape_stacks: int = 0
+    rift_escape_counted: bool = False
+    rift_inside_barrier_last_frame: bool = False
     dash_hit_cooldown: float = 0.0
     base_max_health: int = 1
     move_speed: float = ENEMY_MOVE_SPEED
@@ -795,6 +818,7 @@ class Enemy(PhysicsActor):
     ally_platform_jump_start: Vec2 | None = None
     ally_platform_target: Vec2 | None = None
     ally_platform_jump_arc: float = ALLY_ELITE_PLATFORM_JUMP_ARC
+    ally_formation_offset_x: float = 0.0
 
     def __init__(self, position: Vec2, enemy_type: str = "blade") -> None:
         archetype = ENEMY_ARCHETYPES.get(enemy_type, ENEMY_ARCHETYPES["blade"])
@@ -827,6 +851,10 @@ class Enemy(PhysicsActor):
         self.patrol_timer = 1.1 + (int(position.x) % 70) / 100.0
         self.rest_timer = 0.0
         self.last_seen_position = self.center()
+        self.patrol_target_x = None
+        self.patrol_leg_direction = -1
+        self.search_target_x = None
+        self.had_visual_last_frame = False
         self.attack_profile = self.pick_idle_profile()
 
     @property
@@ -862,6 +890,9 @@ class Enemy(PhysicsActor):
                 stats["drive_speed"] *= 1.35
                 stats["windup"] *= 0.92
                 stats["active"] *= 1.18
+        if self.is_summoned_ally() and self.enemy_type == "elite_knight":
+            stats["windup"] = max(ALLY_ELITE_SUMMON_WINDUP_MIN, stats["windup"] * 1.2)
+            stats["recovery"] = max(ALLY_ELITE_SUMMON_RECOVERY_MIN, stats["recovery"] * 1.22)
         stats["damage"] = max(1, int(stats["damage"] * self.damage_multiplier))
         return stats
 
@@ -870,6 +901,16 @@ class Enemy(PhysicsActor):
 
     def projectile_origin(self) -> Vec2:
         return Vec2(self.rect.centerx + self.facing * 16.0, self.rect.y + self.rect.height * 0.42)
+
+    def has_unstoppable_boss_slash(self) -> bool:
+        if not self.is_boss or self.current_attack_is_ranged():
+            return False
+        if self.attack_profile == "rift" and (self.rift_intent_timer > 0.0 or self.movement_state == "invade"):
+            return True
+        return self.attack_startup_timer > 0.0 or self.attack_timer > 0.0 or self.attack_recovery_timer > 0.0
+
+    def rift_escape_speed_multiplier(self) -> float:
+        return min(1.4, 1.0 + 0.1 * max(0, self.rift_escape_stacks))
 
     def can_see_player(self, player: Player, level) -> bool:
         if self.is_boss:
@@ -898,7 +939,8 @@ class Enemy(PhysicsActor):
 
         if self.alive:
             if self.is_boss:
-                self.velocity.x *= 0.82
+                if not self.has_unstoppable_boss_slash():
+                    self.velocity.x *= 0.82
             else:
                 self.rift_intent_timer = 0.0
                 self.hurt_timer = ENEMY_HURT_STUN
@@ -913,6 +955,8 @@ class Enemy(PhysicsActor):
         return True
 
     def on_parried(self) -> None:
+        if self.has_unstoppable_boss_slash():
+            return
         self.rift_intent_timer = 0.0
         self.attack_startup_timer = 0.0
         self.attack_timer = 0.0
@@ -923,6 +967,8 @@ class Enemy(PhysicsActor):
         self.movement_state = "stagger"
 
     def on_guarded(self, player_facing: int) -> None:
+        if self.has_unstoppable_boss_slash():
+            return
         self.rift_intent_timer = 0.0
         self.attack_startup_timer = 0.0
         self.attack_timer = 0.0
@@ -998,7 +1044,18 @@ class Enemy(PhysicsActor):
 
     def _teleport_near_player(self, player: Player, level) -> bool:
         room = level.current_room
-        candidate_offsets = (72.0, -72.0, 104.0, -104.0, 0.0)
+        preferred_offset = self.ally_formation_offset_x
+        candidate_offsets = (
+            preferred_offset,
+            preferred_offset * 1.35,
+            preferred_offset * 0.7,
+            -preferred_offset,
+            72.0,
+            -72.0,
+            104.0,
+            -104.0,
+            0.0,
+        )
         candidate_bottoms = (player.rect.bottom, player.rect.bottom - TILE_SIZE * 0.5, player.rect.bottom - TILE_SIZE)
         for offset_x in candidate_offsets:
             left = player.rect.centerx + offset_x - self.rect.width * 0.5
@@ -1078,6 +1135,75 @@ class Enemy(PhysicsActor):
             if platform.left + 6 <= sample_x <= platform.right - 6 and abs(platform.top - sample_y) <= 10.0:
                 return True
         return False
+
+    def _support_surface_top(self, sample_x: float, reference_bottom: float, level) -> float | None:
+        query_rect = pygame.Rect(int(sample_x - 4), int(reference_bottom - TILE_SIZE * 2.0), 8, int(TILE_SIZE * 3.2))
+        best_top: float | None = None
+        best_score = float("inf")
+        for solid in level.nearby_solids(query_rect):
+            if solid.left <= sample_x <= solid.right:
+                surface_top = float(solid.top)
+                if surface_top < reference_bottom - TILE_SIZE * 1.6 or surface_top > reference_bottom + TILE_SIZE * 1.4:
+                    continue
+                score = abs(surface_top - reference_bottom)
+                if score < best_score:
+                    best_score = score
+                    best_top = surface_top
+        for platform in level.nearby_semisolids(query_rect):
+            if platform.left + 6 <= sample_x <= platform.right - 6:
+                surface_top = float(platform.top)
+                if surface_top < reference_bottom - TILE_SIZE * 1.6 or surface_top > reference_bottom + TILE_SIZE * 1.4:
+                    continue
+                score = abs(surface_top - reference_bottom)
+                if score < best_score:
+                    best_score = score
+                    best_top = surface_top
+        return best_top
+
+    def _turn_point_blocks_direction(self, direction: int, level) -> bool:
+        if not self.on_ground or direction == 0:
+            return False
+        current_top = self._support_surface_top(self.rect.centerx, self.rect.bottom, level)
+        if current_top is None:
+            return False
+        sample_x = self.rect.centerx + direction * (self.rect.width * 0.45 + ENEMY_TURN_POINT_SCAN)
+        ahead_top = self._support_surface_top(sample_x, self.rect.bottom, level)
+        if ahead_top is None:
+            return True
+        return abs(ahead_top - current_top) > ENEMY_TURN_POINT_HEIGHT
+
+    def _patrol_target_for_direction(self, direction: int) -> float:
+        distance = self.patrol_radius * (ENEMY_PATROL_LEFT_RATIO if direction < 0 else ENEMY_PATROL_RIGHT_RATIO)
+        return self.patrol_origin_x + direction * distance
+
+    def _ensure_patrol_target(self) -> None:
+        if self.patrol_target_x is not None:
+            return
+        self.patrol_target_x = self._patrol_target_for_direction(self.patrol_leg_direction)
+
+    def _advance_patrol_leg(self) -> None:
+        self.patrol_leg_direction = 1 if self.patrol_leg_direction < 0 else -1
+        self.patrol_target_x = self._patrol_target_for_direction(self.patrol_leg_direction)
+
+    def _reached_horizontal_target(self, target_x: float) -> bool:
+        return abs(self.rect.centerx - target_x) <= 10.0
+
+    def _lost_target_search_speed(self, level) -> tuple[float, bool]:
+        if self.search_target_x is None:
+            return 0.0, False
+        search_delta_x = self.search_target_x - self.rect.centerx
+        if self._reached_horizontal_target(self.search_target_x):
+            self.search_target_x = None
+            self.movement_state = "search"
+            return 0.0, True
+        search_direction = 1 if search_delta_x > 0.0 else -1
+        self.facing = search_direction
+        if self._turn_point_blocks_direction(search_direction, level):
+            self.search_target_x = None
+            self.movement_state = "search"
+            return 0.0, True
+        self.movement_state = "search"
+        return self.move_speed * 0.72 * search_direction, True
 
     def _animal_summon_has_gap_between(self, destination_x: float, level) -> bool:
         start_x = self.rect.centerx
@@ -1196,6 +1322,10 @@ class Enemy(PhysicsActor):
         self.stun_timer = max(0.0, self.stun_timer - delta_time)
         self.rift_intent_timer = max(0.0, self.rift_intent_timer - delta_time)
         self.halo_launch_timer = max(0.0, self.halo_launch_timer - delta_time)
+        if self.is_boss and not player.has_halo_barrier():
+            self.rift_escape_stacks = 0
+            self.rift_escape_counted = False
+            self.rift_inside_barrier_last_frame = False
         if self.is_boss and self.rift_intent_timer > 0.0:
             if not player.has_halo_barrier():
                 self.rift_intent_timer = 0.0
@@ -1227,6 +1357,9 @@ class Enemy(PhysicsActor):
             self.action_state = "dead"
             self.movement_state = "idle"
             return result
+
+        if self.is_friendly:
+            self.search_target_x = None
 
         if self.is_friendly and self.enemy_type == "elite_knight" and self.summon_timer <= 0.0:
             self.health = 0
@@ -1277,6 +1410,26 @@ class Enemy(PhysicsActor):
                 self.movement_state = "escort"
                 return result
 
+            player_delta = player.center() - self.center()
+            player_distance_x = abs(player_delta.x)
+            if player_distance_x > ALLY_ELITE_RETURN_DISTANCE_X:
+                self.facing = 1 if player_delta.x > 0.0 else -1
+                escort_destination = Vec2(player.rect.centerx + self.ally_formation_offset_x, player.rect.bottom)
+                landing_rect = self._find_jump_landing_rect(escort_destination, level)
+                if landing_rect is not None:
+                    self._start_ally_platform_jump(landing_rect)
+                    return result
+                desired_delta_x = escort_destination.x - self.rect.centerx
+                self.facing = 1 if desired_delta_x > 0.0 else -1
+                target_speed = self.chase_speed * ALLY_ELITE_RETURN_SPEED_MULTIPLIER * self.facing
+                self.action_state = "ally"
+                self.movement_state = "escort"
+                self.velocity.x = move_toward(self.velocity.x, target_speed, ALLY_ELITE_RETURN_ACCEL * delta_time)
+                self.velocity.y = min(self.velocity.y + ENEMY_GRAVITY * delta_time, ENEMY_MAX_FALL_SPEED)
+                level.move_actor(self, delta_time)
+                self._set_airborne_ally_state()
+                return result
+
             target = None
             if hostiles:
                 visible_hostiles = [
@@ -1291,8 +1444,10 @@ class Enemy(PhysicsActor):
                     target = min(visible_hostiles, key=lambda enemy: (enemy.center() - self.center()).length_squared())
 
             if target is not None:
-                delta = target.center() - self.center()
-                jump_destination = Vec2(target.rect.centerx, target.rect.bottom)
+                desired_target_x = target.rect.centerx + self.ally_formation_offset_x
+                desired_target = Vec2(desired_target_x, target.rect.bottom)
+                delta = desired_target - self.center()
+                jump_destination = desired_target
                 if abs(delta.x) > 8.0:
                     self.facing = 1 if delta.x > 0.0 else -1
                 self.choose_attack_profile(target)
@@ -1334,11 +1489,14 @@ class Enemy(PhysicsActor):
                     self._start_ally_platform_jump(landing_rect)
                     return result
             else:
-                delta = player.center() - self.center()
-                escort_destination = Vec2(player.rect.centerx, player.rect.bottom)
+                escort_destination = Vec2(player.rect.centerx + self.ally_formation_offset_x, player.rect.bottom)
+                delta = escort_destination - self.center()
                 if abs(delta.x) > 72.0:
                     self.facing = 1 if delta.x > 0.0 else -1
-                target_speed = 0.0 if abs(delta.x) < 56.0 else self.move_speed * 0.92 * self.facing
+                if abs(delta.x) <= ALLY_ELITE_STOP_DISTANCE_X:
+                    target_speed = 0.0
+                else:
+                    target_speed = self.move_speed * 0.92 * self.facing
                 self.action_state = "ally"
                 self.movement_state = "escort"
                 should_try_escort_jump = abs(delta.x) > TILE_SIZE * 1.1 or self.rect.bottom - player.rect.bottom > TILE_SIZE * 0.75
@@ -1443,10 +1601,16 @@ class Enemy(PhysicsActor):
             level.move_actor(self, delta_time)
             return result
 
+        previous_has_visual = self.had_visual_last_frame
         has_visual = self.can_see_player(player, level)
+        self.had_visual_last_frame = has_visual
         if has_visual:
             self.aggro_memory_timer = ENEMY_MEMORY_TIME
             self.last_seen_position = player.center()
+            self.search_target_x = None
+        elif previous_has_visual and not self.is_friendly:
+            search_direction = 1 if self.last_seen_position.x >= self.center().x else -1
+            self.search_target_x = self.rect.centerx + search_direction * ENEMY_SEARCH_STEP
 
         if self.attack_startup_timer > 0.0:
             self.velocity.x = move_toward(self.velocity.x, 0.0, 1400.0 * delta_time)
@@ -1541,8 +1705,11 @@ class Enemy(PhysicsActor):
             self.choose_attack_profile(player)
             stats = self.attack_stats()
             if self.current_attack_is_ranged():
+                search_speed, search_active = (0.0, False) if has_visual else self._lost_target_search_speed(level)
                 distance_x = abs(player.center().x - self.center().x)
-                if has_visual and self.on_ground and self.contact_cooldown <= 0.0 and distance_x <= stats["range"] and abs(player.rect.centery - self.rect.centery) < 90.0:
+                if search_active:
+                    target_speed = search_speed
+                elif has_visual and self.on_ground and self.contact_cooldown <= 0.0 and distance_x <= stats["range"] and abs(player.rect.centery - self.rect.centery) < 90.0:
                     self.contact_cooldown = ENEMY_TOUCH_COOLDOWN + 0.18
                     self.attack_startup_timer = stats["windup"]
                     self.attack_has_hit = False
@@ -1550,8 +1717,7 @@ class Enemy(PhysicsActor):
                     self.action_state = "attack_windup"
                     self.movement_state = "brace"
                     return result
-
-                if distance_x < self.preferred_range * 0.78:
+                elif distance_x < self.preferred_range * 0.78:
                     target_speed = -self.facing * self.move_speed
                     self.movement_state = "retreat"
                 elif distance_x > self.preferred_range * 1.12:
@@ -1571,6 +1737,24 @@ class Enemy(PhysicsActor):
                     rift_ready = boss_distance <= player.halo_barrier_radius * 1.02
                     barrier_attack_ready = rift_ready if self.attack_profile == "rift" else False
 
+                rift_slash_active = self.is_boss and self.attack_profile == "rift" and (
+                    self.rift_intent_timer > 0.0
+                    or self.attack_startup_timer > 0.0
+                    or self.attack_timer > 0.0
+                    or self.attack_recovery_timer > 0.0
+                    or self.movement_state == "invade"
+                )
+                if rift_slash_active and player.has_halo_barrier():
+                    if self.rift_inside_barrier_last_frame and not barrier_inside and not self.rift_escape_counted:
+                        self.rift_escape_stacks = min(4, self.rift_escape_stacks + 1)
+                        self.rift_escape_counted = True
+                    elif barrier_inside:
+                        self.rift_escape_counted = False
+                    self.rift_inside_barrier_last_frame = barrier_inside
+                elif self.is_boss:
+                    self.rift_escape_counted = False
+                    self.rift_inside_barrier_last_frame = False
+
                 if self._within_attack_range(player) and self.contact_cooldown <= 0.0 and self.on_ground and self.aggro_memory_timer > 0.0:
                     if barrier_attack_ready:
                         self.contact_cooldown = ENEMY_TOUCH_COOLDOWN
@@ -1588,7 +1772,7 @@ class Enemy(PhysicsActor):
                     self.attack_profile = "rift"
                     self.rift_intent_timer = max(self.rift_intent_timer, 0.70)
                     player_motion_ratio = min(1.0, abs(player.velocity.x) / max(1.0, PLAYER_MAX_SPEED))
-                    invade_speed_scale = 1.12 + player_motion_ratio * 1.08
+                    invade_speed_scale = (1.12 + player_motion_ratio * 1.08) * self.rift_escape_speed_multiplier()
                     if not barrier_inside:
                         target_speed = self.chase_speed * 1.18 * invade_speed_scale if pursue_delta.x > 0.0 else -self.chase_speed * 1.18 * invade_speed_scale
                         self.movement_state = "invade"
@@ -1616,30 +1800,40 @@ class Enemy(PhysicsActor):
                     target_speed = self.chase_speed if pursue_delta.x > 0.0 else -self.chase_speed
                     self.movement_state = "chase"
                 else:
-                    target_speed = self.chase_speed if pursue_delta.x > 0.0 else -self.chase_speed
-                    if not has_visual and abs(pursue_delta.x) < 18.0:
+                    search_speed, search_active = (0.0, False) if has_visual else self._lost_target_search_speed(level)
+                    if search_active:
+                        target_speed = search_speed
+                    else:
+                        target_speed = self.chase_speed if pursue_delta.x > 0.0 else -self.chase_speed
+                    if not has_visual and abs(pursue_delta.x) < 18.0 and self.search_target_x is None:
                         target_speed = 0.0
                         self.movement_state = "search"
-                    else:
+                    elif has_visual or self.search_target_x is None:
                         self.movement_state = "chase" if has_visual else "search"
 
             self.rest_timer = 0.0
             self.patrol_timer = 1.2
+            self.patrol_target_x = None
         else:
+            self.search_target_x = None
             if self.rest_timer > 0.0:
                 target_speed = 0.0
                 self.movement_state = "rest"
             else:
-                if abs(self.rect.x - self.patrol_origin_x) > self.patrol_radius:
-                    self.facing *= -1
-                    self.rest_timer = 0.7
-                elif self.patrol_timer <= 0.0:
-                    self.facing *= -1
+                self._ensure_patrol_target()
+                patrol_direction = -1 if self.patrol_target_x is not None and self.patrol_target_x < self.rect.centerx else 1
+                self.facing = patrol_direction
+                blocked_by_turn = self._turn_point_blocks_direction(patrol_direction, level)
+                reached_patrol_target = self.patrol_target_x is not None and self._reached_horizontal_target(self.patrol_target_x)
+                if blocked_by_turn or reached_patrol_target:
+                    self.rest_timer = 0.7 if blocked_by_turn else 0.85
                     self.patrol_timer = 1.0 + (int(self.patrol_origin_x) % 60) / 100.0
-                    self.rest_timer = 0.85
-
-                target_speed = 0.0 if self.rest_timer > 0.0 else self.move_speed * self.facing
-                self.movement_state = "rest" if self.rest_timer > 0.0 else "patrol"
+                    self._advance_patrol_leg()
+                    target_speed = 0.0
+                    self.movement_state = "rest"
+                else:
+                    target_speed = self.move_speed * 0.62 * patrol_direction
+                    self.movement_state = "patrol"
 
         self.velocity.x = move_toward(self.velocity.x, target_speed, 1100.0 * delta_time)
         self.velocity.y = min(self.velocity.y + ENEMY_GRAVITY * delta_time, ENEMY_MAX_FALL_SPEED)

@@ -1,0 +1,28 @@
+{
+  "actors": {
+    "player": {
+      "states": {},
+      "default": null
+    },
+    "boss": {
+      "states": {},
+      "default": null
+    },
+    "blade": {
+      "states": {},
+      "default": null
+    },
+    "lancer": {
+      "states": {},
+      "default": null
+    },
+    "archer": {
+      "states": {},
+      "default": null
+    },
+    "elite_knight": {
+      "states": {},
+      "default": null
+    }
+  }
+}

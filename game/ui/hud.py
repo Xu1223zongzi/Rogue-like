@@ -8,12 +8,14 @@ import pygame
 
 try:
     from game.config import ACCENT_COLOR, DANGER_COLOR, MUTED_TEXT, PANEL_BORDER, PANEL_COLOR, SANITY_COLOR, SANITY_DANGER_COLOR, SUCCESS_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
+    from game.rendering import draw_ui_panel_box
     from game.ui.equipment_panel import draw_slot_glyph
 except ModuleNotFoundError:
     project_root = Path(__file__).resolve().parents[2]
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
     from game.config import ACCENT_COLOR, DANGER_COLOR, MUTED_TEXT, PANEL_BORDER, PANEL_COLOR, SANITY_COLOR, SANITY_DANGER_COLOR, SUCCESS_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
+    from game.rendering import draw_ui_panel_box
     from game.ui.equipment_panel import draw_slot_glyph
 
 
@@ -56,8 +58,7 @@ def draw_hud(
     del brain_max_cooldown
 
     panel = pygame.Rect(18, 18, 334, 172)
-    pygame.draw.rect(surface, PANEL_COLOR, panel, border_radius=16)
-    pygame.draw.rect(surface, PANEL_BORDER, panel, width=2, border_radius=16)
+    draw_ui_panel_box(app, surface, "hud_main", panel, PANEL_COLOR, PANEL_BORDER, border_radius=16)
 
     body_font = app.get_font(17)
     small_font = app.get_font(15)
@@ -138,16 +139,14 @@ def draw_hud(
         surface.blit(overlay, slot_rect.topleft)
 
     active_slots = [
+        ("heart", (232, 138, 120), (92, 44, 46), (255, 224, 214)),
         ("brain", (164, 132, 244), (62, 44, 104), (226, 212, 255)),
         ("left_eye", (120, 198, 255), (34, 62, 92), (216, 244, 255)),
         ("right_eye", (174, 152, 255), (56, 44, 96), (232, 224, 255)),
     ]
-    cooldown_strip = pygame.Rect(panel.x + 82, panel.y + 151, 198, 7)
-    segment_gap = 6
-    segment_width = (cooldown_strip.width - segment_gap * 2) // 3
     for index, (slot, fill_color, back_color, edge_color) in enumerate(active_slots):
-        segment_x = cooldown_strip.x + index * (segment_width + segment_gap)
-        segment = pygame.Rect(segment_x, cooldown_strip.y, segment_width, cooldown_strip.height)
+        slot_rect = pygame.Rect(panel.x + 18 + index * 64, panel.y + 102, 52, 44)
+        segment = pygame.Rect(slot_rect.x, slot_rect.bottom + 6, slot_rect.width, 6)
         icon = cooldown_lookup.get(slot)
         item_id = equipped_items.get(slot)
         ratio = 0.0
@@ -345,7 +344,7 @@ def _draw_world_map_view(
 
     if fog_reveal_radius > 0.0:
         fog_surface = pygame.Surface(draw_rect.size, pygame.SRCALPHA)
-        fog_surface.fill((0, 0, 0, 255))
+        fog_surface.fill((0, 0, 0, 0))
         reveal_radius = max(8, int(round(fog_reveal_radius * scale)))
         for point in fog_reveal_points:
             if not isinstance(point, (tuple, list)) or len(point) != 2:
@@ -365,8 +364,7 @@ def draw_cooldown_icons(surface: pygame.Surface, app, cooldown_icons: list[dict[
         return
 
     panel = pygame.Rect(18, surface.get_height() - 68, 292, 64)
-    pygame.draw.rect(surface, PANEL_COLOR, panel, border_radius=14)
-    pygame.draw.rect(surface, PANEL_BORDER, panel, width=2, border_radius=14)
+    draw_ui_panel_box(app, surface, "map_panel", panel, PANEL_COLOR, PANEL_BORDER, border_radius=14)
 
     for index, icon in enumerate(cooldown_icons[:4]):
         slot_rect = pygame.Rect(panel.x + 12 + index * 68, panel.y + 10, 56, 44)
@@ -427,8 +425,7 @@ def draw_world_map_overlay(
         return
 
     panel = pygame.Rect(surface.get_width() // 10, surface.get_height() // 10, surface.get_width() * 8 // 10, surface.get_height() * 8 // 10)
-    pygame.draw.rect(surface, PANEL_COLOR, panel, border_radius=18)
-    pygame.draw.rect(surface, PANEL_BORDER, panel, width=2, border_radius=18)
+    draw_ui_panel_box(app, surface, "world_map_panel", panel, PANEL_COLOR, PANEL_BORDER, border_radius=18)
 
     title_font = app.get_font(24, bold=True)
     body_font = app.get_font(18)

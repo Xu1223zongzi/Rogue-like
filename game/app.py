@@ -8,6 +8,7 @@ from .audio import CombatAudio
 from .config import BACKGROUND_BOTTOM, DISPLAY_HEIGHT, DISPLAY_WIDTH, FIXED_TIME_STEP, MAX_FRAME_TIME, TARGET_FPS, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH
 from .core.input import InputState
 from .core.scene import SceneManager
+from .rendering import RenderResources
 from .scenes.title_scene import TitleScene
 
 
@@ -42,6 +43,7 @@ class GameApp:
         self.running = True
         self.font_cache: dict[tuple[int, bool], pygame.font.Font] = {}
         self.audio = CombatAudio()
+        self.resources = RenderResources(Path(__file__).resolve().parents[1] / "assets")
 
         self.scene_manager.switch_to(TitleScene(self))
 

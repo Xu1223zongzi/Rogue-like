@@ -4,6 +4,7 @@ import pygame
 
 from game.config import ACCENT_COLOR, MUTED_TEXT, PANEL_BORDER, PANEL_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
 from game.core.scene import Scene
+from game.rendering import draw_ui_panel_box
 from game.scenes.loading_scene import LoadingScene
 
 
@@ -16,8 +17,7 @@ class TitleScene(Scene):
     def render(self, surface: pygame.Surface) -> None:
         panel = pygame.Rect(0, 0, 760, 440)
         panel.center = (WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
-        pygame.draw.rect(surface, PANEL_COLOR, panel, border_radius=20)
-        pygame.draw.rect(surface, PANEL_BORDER, panel, width=2, border_radius=20)
+        draw_ui_panel_box(self.app, surface, "title_panel", panel, PANEL_COLOR, PANEL_BORDER, border_radius=20)
 
         title = self.app.get_font(42, bold=True).render("迷宫竞速", True, TEXT_COLOR)
         subtitle = self.app.get_font(24).render("装备、理智与分支地图的测试版本", True, MUTED_TEXT)
