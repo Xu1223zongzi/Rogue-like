@@ -1,0 +1,259 @@
+{
+  "props": {
+    "pickup_shadow": {
+      "category": "scene.prop.shadow",
+      "default": {
+        "whole": [],
+        "parts": {},
+        "part_order": []
+      }
+    },
+    "pickup_altar": {
+      "category": "scene.prop.pickup",
+      "default": {
+        "whole": [],
+        "parts": {
+          "base": [],
+          "dish": []
+        },
+        "part_order": ["base", "dish"]
+      },
+      "states": {
+        "hidden": {
+          "whole": [],
+          "parts": {
+            "base": [],
+            "dish": [],
+            "seal": []
+          },
+          "part_order": ["base", "dish", "seal"]
+        }
+      }
+    },
+    "altar_glow": {
+      "category": "scene.prop.glow",
+      "default": {
+        "whole": []
+      },
+      "states": {
+        "awakened": {
+          "whole": [],
+          "parts": {
+            "outer": [],
+            "core": []
+          },
+          "part_order": ["outer", "core"]
+        }
+      }
+    },
+    "pickup_jar": {
+      "category": "scene.prop.pickup",
+      "default": {
+        "whole": [],
+        "parts": {
+          "glass": [],
+          "fluid": [],
+          "lid": []
+        },
+        "part_order": ["fluid", "glass", "lid"]
+      }
+    },
+    "pickup_item_glow": {
+      "category": "scene.prop.glow",
+      "default": {
+        "whole": []
+      }
+    },
+    "heart_flight_glow": {
+      "category": "scene.prop.glow",
+      "default": {
+        "whole": []
+      }
+    }
+  },
+  "gates": {
+    "route_gate_glow": {
+      "category": "scene.gate.glow",
+      "default": {
+        "whole": []
+      },
+      "states": {
+        "shop": { "whole": [] },
+        "combat": { "whole": [] },
+        "boss": { "whole": [] }
+      }
+    },
+    "route_gate_frame": {
+      "category": "scene.gate.frame",
+      "default": {
+        "whole": [],
+        "parts": {
+          "frame": [],
+          "panel": []
+        },
+        "part_order": ["panel", "frame"]
+      },
+      "states": {
+        "shop": { "whole": [] },
+        "combat": { "whole": [] },
+        "boss": { "whole": [] }
+      }
+    }
+  },
+  "portals": {
+    "teleport_portal": {
+      "category": "scene.portal",
+      "default": {
+        "whole": [],
+        "parts": {
+          "core": [],
+          "ring": []
+        },
+        "part_order": ["core", "ring"]
+      },
+      "states": {
+        "anchor": {
+          "whole": [],
+          "parts": {
+            "core": [],
+            "ring": [],
+            "marker": []
+          },
+          "part_order": ["core", "ring", "marker"]
+        },
+        "activated": { "whole": [] },
+        "inactive": { "whole": [] }
+      }
+    },
+    "teleport_transition": {
+      "category": "scene.portal.transition",
+      "default": {
+        "whole": []
+      },
+      "states": {
+        "depart": { "whole": [] },
+        "arrive": { "whole": [] }
+      }
+    }
+  },
+  "combat": {
+    "player_afterimage": {
+      "category": "scene.combat.afterimage",
+      "default": {
+        "whole": []
+      }
+    },
+    "projectile_trail": {
+      "category": "scene.combat.projectile",
+      "default": {
+        "whole": []
+      }
+    },
+    "projectile": {
+      "category": "scene.combat.projectile",
+      "default": {
+        "whole": [],
+        "parts": {
+          "body": [],
+          "outline": []
+        },
+        "part_order": ["body", "outline"]
+      },
+      "states": {
+        "reflected": {
+          "whole": [],
+          "parts": {
+            "body": [],
+            "reflected_outline": []
+          },
+          "part_order": ["body", "reflected_outline"]
+        }
+      }
+    },
+    "slash_effect_line": {
+      "category": "scene.combat.slash",
+      "default": {
+        "whole": []
+      }
+    },
+    "slash_effect_core": {
+      "category": "scene.combat.slash",
+      "default": {
+        "whole": []
+      }
+    },
+    "impact_burst": {
+      "category": "scene.combat.impact",
+      "default": {
+        "whole": [],
+        "parts": {
+          "ring": [],
+          "spokes": []
+        },
+        "part_order": ["ring", "spokes"]
+      }
+    },
+    "parry_clash": {
+      "category": "scene.combat.parry",
+      "default": {
+        "whole": []
+      },
+      "states": {
+        "blade": { "whole": [] },
+        "lancer": { "whole": [] },
+        "archer": { "whole": [] },
+        "boss": { "whole": [] },
+        "elite_knight": { "whole": [] }
+      }
+    },
+    "execution_effect": {
+      "category": "scene.combat.execution",
+      "default": {
+        "whole": []
+      },
+      "states": {
+        "lancer": { "whole": [] },
+        "archer": { "whole": [] },
+        "default": { "whole": [] }
+      }
+    }
+  },
+  "overlays": {
+    "perfect_dodge_flash": {
+      "category": "scene.overlay.flash",
+      "default": {
+        "whole": []
+      }
+    },
+    "parry_full_flash": {
+      "category": "scene.overlay.flash",
+      "default": {
+        "whole": []
+      }
+    },
+    "parry_overlay": {
+      "category": "scene.overlay.parry",
+      "default": {
+        "whole": [],
+        "parts": {
+          "shade": [],
+          "ring": [],
+          "flash": []
+        },
+        "part_order": ["shade", "ring", "flash"]
+      }
+    },
+    "finisher_overlay": {
+      "category": "scene.overlay.finisher",
+      "default": {
+        "whole": [],
+        "parts": {
+          "shade": [],
+          "ring": [],
+          "flash": []
+        },
+        "part_order": ["shade", "ring", "flash"]
+      }
+    }
+  }
+}

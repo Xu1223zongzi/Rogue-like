@@ -1,0 +1,20 @@
+{
+  "icons": {
+    "heart": {
+      "default": null,
+      "items": {}
+    },
+    "brain": {
+      "default": null,
+      "items": {}
+    },
+    "left_eye": {
+      "default": null,
+      "items": {}
+    },
+    "right_eye": {
+      "default": null,
+      "items": {}
+    }
+  }
+}

@@ -1,28 +1,241 @@
 {
-  "actors": {
+  "players": {
     "player": {
-      "states": {},
-      "default": null
-    },
+      "category": "actor.player",
+      "states": {
+        "brain_sword_attack": {
+          "whole": [],
+          "parts": {},
+          "part_order": []
+        },
+        "brain_sword": {
+          "whole": [],
+          "parts": {
+            "body": [],
+            "weapon": []
+          },
+          "part_order": ["body", "weapon"]
+        },
+        "brain_scripture_attack": {
+          "whole": [],
+          "parts": {},
+          "part_order": []
+        },
+        "brain_scripture": {
+          "whole": [],
+          "parts": {
+            "body": [],
+            "focus": []
+          },
+          "part_order": ["body", "focus"]
+        },
+        "fusion_brain_sword": {
+          "whole": [],
+          "parts": {
+            "body": [],
+            "cape": [],
+            "weapon": []
+          },
+          "part_order": ["body", "cape", "weapon"]
+        },
+        "steel_guard": {
+          "whole": [],
+          "parts": {
+            "body": [],
+            "overlay": []
+          },
+          "part_order": ["body", "overlay"]
+        },
+        "default": {
+          "whole": [],
+          "parts": {
+            "body": []
+          },
+          "part_order": ["body"]
+        }
+      },
+      "default": {
+        "whole": [],
+        "parts": {
+          "body": []
+        },
+        "part_order": ["body"]
+      }
+    }
+  },
+  "enemies": {
     "boss": {
-      "states": {},
-      "default": null
+      "category": "actor.enemy.boss",
+      "states": {
+        "boss_rift_attack": {
+          "whole": [],
+          "parts": {
+            "body": [],
+            "weapon": [],
+            "rift": []
+          },
+          "part_order": ["body", "weapon", "rift"]
+        },
+        "boss_rift_attack_windup": {
+          "whole": [],
+          "parts": {
+            "body": [],
+            "rift": []
+          },
+          "part_order": ["body", "rift"]
+        },
+        "boss_invade": {
+          "whole": [],
+          "parts": {
+            "body": [],
+            "aura": []
+          },
+          "part_order": ["body", "aura"]
+        },
+        "default": {
+          "whole": [],
+          "parts": {
+            "body": [],
+            "weapon": []
+          },
+          "part_order": ["body", "weapon"]
+        }
+      },
+      "default": {
+        "whole": [],
+        "parts": {
+          "body": [],
+          "weapon": []
+        },
+        "part_order": ["body", "weapon"]
+      }
     },
     "blade": {
-      "states": {},
-      "default": null
+      "category": "actor.enemy.blade",
+      "states": {
+        "default": {
+          "whole": [],
+          "parts": {
+            "body": [],
+            "weapon": []
+          },
+          "part_order": ["body", "weapon"]
+        }
+      },
+      "default": {
+        "whole": [],
+        "parts": {
+          "body": [],
+          "weapon": []
+        },
+        "part_order": ["body", "weapon"]
+      }
     },
     "lancer": {
-      "states": {},
-      "default": null
+      "category": "actor.enemy.lancer",
+      "states": {
+        "default": {
+          "whole": [],
+          "parts": {
+            "body": [],
+            "weapon": []
+          },
+          "part_order": ["body", "weapon"]
+        }
+      },
+      "default": {
+        "whole": [],
+        "parts": {
+          "body": [],
+          "weapon": []
+        },
+        "part_order": ["body", "weapon"]
+      }
     },
     "archer": {
-      "states": {},
-      "default": null
+      "category": "actor.enemy.archer",
+      "states": {
+        "default": {
+          "whole": [],
+          "parts": {
+            "body": [],
+            "weapon": [],
+            "quiver": []
+          },
+          "part_order": ["body", "weapon", "quiver"]
+        }
+      },
+      "default": {
+        "whole": [],
+        "parts": {
+          "body": [],
+          "weapon": [],
+          "quiver": []
+        },
+        "part_order": ["body", "weapon", "quiver"]
+      }
     },
     "elite_knight": {
-      "states": {},
-      "default": null
+      "category": "actor.enemy.elite_knight",
+      "states": {
+        "elite_knight_ranged_attack": {
+          "whole": [],
+          "parts": {
+            "body": [],
+            "staff": [],
+            "focus": []
+          },
+          "part_order": ["body", "staff", "focus"]
+        },
+        "elite_knight_ranged": {
+          "whole": [],
+          "parts": {
+            "body": [],
+            "staff": []
+          },
+          "part_order": ["body", "staff"]
+        },
+        "elite_knight_melee_attack": {
+          "whole": [],
+          "parts": {
+            "body": [],
+            "weapon": []
+          },
+          "part_order": ["body", "weapon"]
+        },
+        "elite_knight_melee": {
+          "whole": [],
+          "parts": {
+            "body": [],
+            "weapon": []
+          },
+          "part_order": ["body", "weapon"]
+        },
+        "friendly": {
+          "whole": [],
+          "parts": {
+            "body": [],
+            "accent": []
+          },
+          "part_order": ["body", "accent"]
+        },
+        "default": {
+          "whole": [],
+          "parts": {
+            "body": [],
+            "weapon": []
+          },
+          "part_order": ["body", "weapon"]
+        }
+      },
+      "default": {
+        "whole": [],
+        "parts": {
+          "body": [],
+          "weapon": []
+        },
+        "part_order": ["body", "weapon"]
+      }
     }
   }
 }

@@ -8,15 +8,13 @@ import pygame
 
 try:
     from game.config import ACCENT_COLOR, DANGER_COLOR, MUTED_TEXT, PANEL_BORDER, PANEL_COLOR, SANITY_COLOR, SANITY_DANGER_COLOR, SUCCESS_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
-    from game.rendering import draw_ui_panel_box
-    from game.ui.equipment_panel import draw_slot_glyph
+    from game.rendering import draw_slot_glyph, draw_ui_panel_box
 except ModuleNotFoundError:
     project_root = Path(__file__).resolve().parents[2]
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
     from game.config import ACCENT_COLOR, DANGER_COLOR, MUTED_TEXT, PANEL_BORDER, PANEL_COLOR, SANITY_COLOR, SANITY_DANGER_COLOR, SUCCESS_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
-    from game.rendering import draw_ui_panel_box
-    from game.ui.equipment_panel import draw_slot_glyph
+    from game.rendering import draw_slot_glyph, draw_ui_panel_box
 
 
 def draw_hud(
@@ -121,7 +119,7 @@ def draw_hud(
         slot_rect = pygame.Rect(panel.x + 18 + index * 64, panel.y + 102, 52, 44)
         pygame.draw.rect(surface, (24, 31, 44), slot_rect, border_radius=12)
         pygame.draw.rect(surface, ACCENT_COLOR if equipped_items.get(slot) is not None else PANEL_BORDER, slot_rect, width=2 if equipped_items.get(slot) is not None else 1, border_radius=12)
-        draw_slot_glyph(surface, slot, equipped_items.get(slot), (slot_rect.centerx, slot_rect.y + 17), 9)
+        draw_slot_glyph(app, surface, slot, equipped_items.get(slot), (slot_rect.centerx, slot_rect.y + 17), 9)
         icon = cooldown_lookup.get(slot)
         if icon is None or equipped_items.get(slot) is None:
             continue
@@ -377,7 +375,7 @@ def draw_cooldown_icons(surface: pygame.Surface, app, cooldown_icons: list[dict[
         max_cooldown = max(0.001, float(icon["max_cooldown"]))
         ready = cooldown <= 0.01 and item_id is not None
 
-        draw_slot_glyph(surface, slot, item_id if isinstance(item_id, str) else None, slot_rect.center, 10)
+        draw_slot_glyph(app, surface, slot, item_id if isinstance(item_id, str) else None, slot_rect.center, 10)
 
         if item_id is None:
             continue

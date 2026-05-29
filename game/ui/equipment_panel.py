@@ -3,7 +3,7 @@ from __future__ import annotations
 import pygame
 
 from game.config import ACCENT_COLOR, DANGER_COLOR, MUTED_TEXT, PANEL_BORDER, PANEL_COLOR, PLAYER_PARRY_COLOR, SUCCESS_COLOR, TEXT_COLOR
-from game.rendering import draw_ui_panel_box
+from game.rendering import draw_slot_glyph, draw_ui_panel_box
 from game.systems.equipment import EquipmentState, PassiveCardSummary, PassiveSummary, SLOT_LABELS, get_equipment, knight_minor_tier, major_is_active, passive_tier_details
 
 
@@ -171,7 +171,7 @@ def draw_focus_column(
     surface.blit(title_font.render(short_item_name(title), True, TEXT_COLOR), (hero.x + 18, hero.y + 42))
     if preview_item_id is not None:
         preview_item = get_equipment(preview_item_id)
-        draw_slot_glyph(surface, preview_item.slot, preview_item_id, (hero.right - 50, hero.centery + 2), 26)
+        draw_slot_glyph(app, surface, preview_item.slot, preview_item_id, (hero.right - 50, hero.centery + 2), 26)
         surface.blit(small_font.render(preview_item.major_name, True, ACCENT_COLOR), (hero.x + 18, hero.y + 84))
     elif hovered_tier is not None:
         tier_surface = title_font.render(f"T{hovered_tier}", True, tier_visual_color(hovered_tier, PLAYER_PARRY_COLOR))
@@ -284,45 +284,6 @@ def draw_right_column(surface: pygame.Surface, app, equipment: EquipmentState, p
 
 def short_item_name(name: str) -> str:
     return name.split(": ", 1)[-1]
-
-
-def draw_slot_glyph(surface: pygame.Surface, slot: str, item_id: str | None, center: tuple[int, int], radius: int) -> None:
-    color = (86, 102, 126) if item_id is None else get_equipment(item_id).icon_color
-    outline = PANEL_BORDER if item_id is None else TEXT_COLOR
-
-    if slot == "heart":
-        points = [
-            (center[0], center[1] + radius),
-            (center[0] - radius, center[1] - 2),
-            (center[0] - radius // 2, center[1] - radius),
-            (center[0], center[1] - radius // 3),
-            (center[0] + radius // 2, center[1] - radius),
-            (center[0] + radius, center[1] - 2),
-        ]
-        pygame.draw.polygon(surface, color, points)
-        pygame.draw.polygon(surface, outline, points, width=2)
-        return
-
-    if slot == "brain":
-        lobes = [
-            (center[0] - radius // 2, center[1] - radius // 4),
-            (center[0] + radius // 2, center[1] - radius // 4),
-            (center[0] - radius // 3, center[1] + radius // 4),
-            (center[0] + radius // 3, center[1] + radius // 4),
-        ]
-        for lobe in lobes:
-            pygame.draw.circle(surface, color, lobe, max(4, radius // 2))
-        pygame.draw.circle(surface, outline, center, radius, width=2)
-        pygame.draw.line(surface, outline, (center[0], center[1] - radius + 4), (center[0], center[1] + radius - 4), width=2)
-        return
-
-    eye_rect = pygame.Rect(0, 0, radius * 2 + 4, radius + 8)
-    eye_rect.center = center
-    pygame.draw.ellipse(surface, color, eye_rect)
-    pygame.draw.ellipse(surface, outline, eye_rect, width=2)
-    iris_x = center[0] - radius // 4 if slot == "left_eye" else center[0] + radius // 4
-    pygame.draw.circle(surface, (24, 28, 36), (iris_x, center[1]), max(4, radius // 3))
-    pygame.draw.circle(surface, (235, 240, 248), (iris_x + (1 if slot == "right_eye" else -1), center[1] - 2), max(2, radius // 6))
 
 
 def draw_wrapped_text(surface: pygame.Surface, app, text: str, x: int, y: int, width: int, color: tuple[int, int, int], size: int) -> int:

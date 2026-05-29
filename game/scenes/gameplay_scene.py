@@ -128,7 +128,8 @@ from game.systems.equipment import (
     knight_stun_seconds,
     knight_tier,
 )
-from game.ui.equipment_panel import draw_equipment_panel, draw_slot_glyph
+from game.rendering import draw_slot_glyph
+from game.ui.equipment_panel import draw_equipment_panel
 from game.ui.hud import draw_hud, draw_world_map_overlay
 from game.world.level import LevelState
 
@@ -4420,27 +4421,50 @@ class GameplayScene(Scene):
         for pickup in self.visible_render_pickups():
             draw_pos = Vec2(pickup.position.x - self.camera.x, pickup.position.y - self.camera.y)
             shadow_rect = pygame.Rect(int(draw_pos.x - 20), int(draw_pos.y - 4), 40, 8)
-            pygame.draw.ellipse(surface, (0, 0, 0, 86), shadow_rect)
+            pickup_shadow_drawn = False
+            if hasattr(self.app, "resources"):
+                pickup_shadow_drawn = self.app.resources.draw_scene_visual(surface, "pickup_shadow", shadow_rect)
+            if not pickup_shadow_drawn:
+                pygame.draw.ellipse(surface, (0, 0, 0, 86), shadow_rect)
             if pickup.fixture_kind == "altar":
                 glow_strength = min(1.0, self.altar_awaken_timer / 1.1) if self.altar_awaken_timer > 0.0 else 0.0
                 if glow_strength > 0.0:
-                    altar_glow = self.get_effect_surface((180, 180), "altar_glow")
-                    pygame.draw.circle(altar_glow, (255, 196, 128, int(44 * glow_strength)), (90, 106), 52)
-                    pygame.draw.circle(altar_glow, (255, 236, 188, int(28 * glow_strength)), (90, 90), 30)
-                    surface.blit(altar_glow, (draw_pos.x - 90, draw_pos.y - 120))
+                    altar_glow_drawn = False
+                    if hasattr(self.app, "resources"):
+                        altar_glow_drawn = self.app.resources.draw_scene_visual_centered(
+                            surface,
+                            "altar_glow",
+                            (int(draw_pos.x), int(draw_pos.y - 30)),
+                            (180, 180),
+                            states=["awakened"],
+                            alpha=int(255 * glow_strength),
+                        )
+                    if not altar_glow_drawn:
+                        altar_glow = self.get_effect_surface((180, 180), "altar_glow")
+                        pygame.draw.circle(altar_glow, (255, 196, 128, int(44 * glow_strength)), (90, 106), 52)
+                        pygame.draw.circle(altar_glow, (255, 236, 188, int(28 * glow_strength)), (90, 90), 30)
+                        surface.blit(altar_glow, (draw_pos.x - 90, draw_pos.y - 120))
                 base_rect = pygame.Rect(int(draw_pos.x - 28), int(draw_pos.y - 14), 56, 12)
                 stem_rect = pygame.Rect(int(draw_pos.x - 8), int(draw_pos.y - 46), 16, 30)
                 dish_outer = pygame.Rect(int(draw_pos.x - 34), int(draw_pos.y - 62), 68, 16)
                 dish_inner = dish_outer.inflate(-8, -6)
-                pygame.draw.rect(surface, (72, 64, 78), base_rect, border_radius=6)
-                pygame.draw.rect(surface, (116, 104, 126), base_rect, width=2, border_radius=6)
-                pygame.draw.rect(surface, (90, 82, 104), stem_rect, border_radius=6)
-                pygame.draw.rect(surface, (138, 128, 150), stem_rect, width=2, border_radius=6)
-                pygame.draw.ellipse(surface, (112, 106, 132), dish_outer)
-                pygame.draw.ellipse(surface, (190, 184, 214), dish_outer, width=2)
-                pygame.draw.ellipse(surface, (64, 82, 96), dish_inner)
+                altar_rect = pygame.Rect(int(draw_pos.x - 34), int(draw_pos.y - 62), 68, 60)
+                altar_drawn = False
+                altar_states: list[str] = []
                 if pickup.hidden_item_id is not None and pickup.item_id is None:
-                    pygame.draw.ellipse(surface, (92, 118, 132), dish_inner.inflate(-8, -2), width=2)
+                    altar_states.append("hidden")
+                if hasattr(self.app, "resources"):
+                    altar_drawn = self.app.resources.draw_scene_visual(surface, "pickup_altar", altar_rect, states=altar_states)
+                if not altar_drawn:
+                    pygame.draw.rect(surface, (72, 64, 78), base_rect, border_radius=6)
+                    pygame.draw.rect(surface, (116, 104, 126), base_rect, width=2, border_radius=6)
+                    pygame.draw.rect(surface, (90, 82, 104), stem_rect, border_radius=6)
+                    pygame.draw.rect(surface, (138, 128, 150), stem_rect, width=2, border_radius=6)
+                    pygame.draw.ellipse(surface, (112, 106, 132), dish_outer)
+                    pygame.draw.ellipse(surface, (190, 184, 214), dish_outer, width=2)
+                    pygame.draw.ellipse(surface, (64, 82, 96), dish_inner)
+                    if pickup.hidden_item_id is not None and pickup.item_id is None:
+                        pygame.draw.ellipse(surface, (92, 118, 132), dish_inner.inflate(-8, -2), width=2)
                 glyph_y = draw_pos.y - 72
                 if pickup.reveal_progress < 1.0:
                     glyph_y += (1.0 - pickup.reveal_progress) * 44.0
@@ -4450,31 +4474,44 @@ class GameplayScene(Scene):
                 jar_lid = pygame.Rect(int(draw_pos.x - 18), int(draw_pos.y - 62), 36, 8)
                 jar_base = pygame.Rect(int(draw_pos.x - 18), int(draw_pos.y - 8), 36, 8)
                 fluid = pygame.Rect(jar_body.x + 4, jar_body.y + 16, jar_body.width - 8, jar_body.height - 20)
-                pygame.draw.rect(surface, (38, 56, 62), fluid, border_radius=10)
-                pygame.draw.rect(surface, (108, 166, 182), jar_body, width=2, border_radius=14)
-                pygame.draw.rect(surface, (176, 214, 220), jar_lid, border_radius=5)
-                pygame.draw.rect(surface, (130, 154, 164), jar_base, border_radius=3)
-                gloss = self.get_effect_surface((52, 64), "pickup_jar_gloss")
-                pygame.draw.ellipse(gloss, (230, 246, 252, 28), (8, 10, 14, 34))
-                surface.blit(gloss, (draw_pos.x - 26, draw_pos.y - 62))
+                jar_rect = pygame.Rect(int(draw_pos.x - 26), int(draw_pos.y - 62), 52, 64)
+                jar_drawn = False
+                if hasattr(self.app, "resources"):
+                    jar_drawn = self.app.resources.draw_scene_visual(surface, "pickup_jar", jar_rect)
+                if not jar_drawn:
+                    pygame.draw.rect(surface, (38, 56, 62), fluid, border_radius=10)
+                    pygame.draw.rect(surface, (108, 166, 182), jar_body, width=2, border_radius=14)
+                    pygame.draw.rect(surface, (176, 214, 220), jar_lid, border_radius=5)
+                    pygame.draw.rect(surface, (130, 154, 164), jar_base, border_radius=3)
+                    gloss = self.get_effect_surface((52, 64), "pickup_jar_gloss")
+                    pygame.draw.ellipse(gloss, (230, 246, 252, 28), (8, 10, 14, 34))
+                    surface.blit(gloss, (draw_pos.x - 26, draw_pos.y - 62))
                 glyph_center = (int(draw_pos.x), int(draw_pos.y - 30))
 
             if pickup.item_id is not None:
                 item = get_equipment(pickup.item_id)
-                glow = self.get_effect_surface((52, 52), "pickup_item_glow")
-                pygame.draw.circle(glow, (*EQUIPMENT_GLOW, 20), (26, 26), 18)
-                surface.blit(glow, (glyph_center[0] - 26, glyph_center[1] - 26))
+                pickup_glow_drawn = False
+                if hasattr(self.app, "resources"):
+                    pickup_glow_drawn = self.app.resources.draw_scene_visual_centered(surface, "pickup_item_glow", glyph_center, (52, 52))
+                if not pickup_glow_drawn:
+                    glow = self.get_effect_surface((52, 52), "pickup_item_glow")
+                    pygame.draw.circle(glow, (*EQUIPMENT_GLOW, 20), (26, 26), 18)
+                    surface.blit(glow, (glyph_center[0] - 26, glyph_center[1] - 26))
                 self.draw_pickup_series_aura(surface, glyph_center, pickup.item_id)
-                draw_slot_glyph(surface, item.slot, pickup.item_id, glyph_center, 11)
+                draw_slot_glyph(self.app, surface, item.slot, pickup.item_id, glyph_center, 11)
 
         if self.heart_flight is not None:
             t = self.heart_flight.progress
             arc = math.sin(t * math.pi) * 92.0
             position = self.heart_flight.start.lerp(self.heart_flight.target, t) + Vec2(0.0, -arc)
             draw_pos = position - self.camera
-            glow = self.get_effect_surface((64, 64), "heart_flight_glow")
-            pygame.draw.circle(glow, (*EQUIPMENT_GLOW, 40), (32, 32), 20)
-            surface.blit(glow, (draw_pos.x - 32, draw_pos.y - 32))
+            heart_glow_drawn = False
+            if hasattr(self.app, "resources"):
+                heart_glow_drawn = self.app.resources.draw_scene_visual_centered(surface, "heart_flight_glow", (int(draw_pos.x), int(draw_pos.y)), (64, 64))
+            if not heart_glow_drawn:
+                glow = self.get_effect_surface((64, 64), "heart_flight_glow")
+                pygame.draw.circle(glow, (*EQUIPMENT_GLOW, 40), (32, 32), 20)
+                surface.blit(glow, (draw_pos.x - 32, draw_pos.y - 32))
             trail = self.get_overlay_surface(surface, "heart_flight_trail")
             for step in range(4):
                 trail_t = max(0.0, t - step * 0.08)
@@ -4491,12 +4528,20 @@ class GameplayScene(Scene):
         body_font = self.app.get_font(13)
         for gate in gates:
             draw_rect = pygame.Rect(int(gate.rect.x - self.camera.x), int(gate.rect.y - self.camera.y), int(gate.rect.width), int(gate.rect.height))
-            glow = self.get_effect_surface((draw_rect.width + 28, draw_rect.height + 28), "route_gate_glow")
-            glow_color = (120, 196, 255, 56) if gate.role == "shop" else (255, 214, 138, 56)
-            pygame.draw.ellipse(glow, glow_color, glow.get_rect())
-            surface.blit(glow, (draw_rect.x - 14, draw_rect.y - 14))
-            pygame.draw.rect(surface, (26, 32, 44), draw_rect, border_radius=10)
-            pygame.draw.rect(surface, ACCENT_COLOR, draw_rect, width=2, border_radius=10)
+            glow_drawn = False
+            frame_drawn = False
+            gate_states = [gate.role]
+            if hasattr(self.app, "resources"):
+                glow_drawn = self.app.resources.draw_scene_visual(surface, "route_gate_glow", draw_rect.inflate(28, 28), states=gate_states)
+                frame_drawn = self.app.resources.draw_scene_visual(surface, "route_gate_frame", draw_rect, states=gate_states)
+            if not glow_drawn:
+                glow = self.get_effect_surface((draw_rect.width + 28, draw_rect.height + 28), "route_gate_glow")
+                glow_color = (120, 196, 255, 56) if gate.role == "shop" else (255, 214, 138, 56)
+                pygame.draw.ellipse(glow, glow_color, glow.get_rect())
+                surface.blit(glow, (draw_rect.x - 14, draw_rect.y - 14))
+            if not frame_drawn:
+                pygame.draw.rect(surface, (26, 32, 44), draw_rect, border_radius=10)
+                pygame.draw.rect(surface, ACCENT_COLOR, draw_rect, width=2, border_radius=10)
             role_label = gate.role.upper()
             title = title_font.render(role_label, True, TEXT_COLOR)
             hint = body_font.render("E", True, SUCCESS_COLOR)
@@ -4506,19 +4551,27 @@ class GameplayScene(Scene):
     def draw_teleport_portals(self, surface: pygame.Surface) -> None:
         for portal in self.teleport_portals:
             center = (int(portal.position.x - self.camera.x), int(portal.position.y - self.camera.y))
-            overlay = self.get_overlay_surface(surface, f"teleport_portal_{portal.portal_id}")
             pulse = 0.56 + 0.44 * math.sin(pygame.time.get_ticks() * 0.009 + center[0] * 0.01)
             radius = max(14, int(TELEPORT_PORTAL_RADIUS * (0.72 + 0.08 * pulse)))
-            glow_alpha = 88 if portal.activated else 32
-            core_color = (94, 182, 255) if portal.activated else (88, 98, 118)
-            edge_color = (236, 248, 255) if portal.activated else (144, 152, 170)
-            pygame.draw.circle(overlay, (*core_color, glow_alpha), center, radius + 10)
-            pygame.draw.circle(overlay, (*edge_color, 186 if portal.activated else 92), center, radius, width=3)
-            pygame.draw.circle(overlay, (10, 14, 20, 210), center, max(6, radius - 10))
+            states: list[str] = ["activated" if portal.activated else "inactive"]
             if portal.portal_id == self.teleport_anchor_portal_id:
-                marker = pygame.Rect(center[0] - radius - 10, center[1] - radius - 10, (radius + 10) * 2, (radius + 10) * 2)
-                pygame.draw.rect(overlay, (255, 238, 168, 172), marker, width=2, border_radius=8)
-            surface.blit(overlay, (0, 0))
+                states.insert(0, "anchor")
+            portal_drawn = False
+            portal_rect = pygame.Rect(center[0] - radius - 10, center[1] - radius - 10, (radius + 10) * 2, (radius + 10) * 2)
+            if hasattr(self.app, "resources"):
+                portal_drawn = self.app.resources.draw_scene_visual(surface, "teleport_portal", portal_rect, states=states)
+            if not portal_drawn:
+                overlay = self.get_overlay_surface(surface, f"teleport_portal_{portal.portal_id}")
+                glow_alpha = 88 if portal.activated else 32
+                core_color = (94, 182, 255) if portal.activated else (88, 98, 118)
+                edge_color = (236, 248, 255) if portal.activated else (144, 152, 170)
+                pygame.draw.circle(overlay, (*core_color, glow_alpha), center, radius + 10)
+                pygame.draw.circle(overlay, (*edge_color, 186 if portal.activated else 92), center, radius, width=3)
+                pygame.draw.circle(overlay, (10, 14, 20, 210), center, max(6, radius - 10))
+                if portal.portal_id == self.teleport_anchor_portal_id:
+                    marker = pygame.Rect(center[0] - radius - 10, center[1] - radius - 10, (radius + 10) * 2, (radius + 10) * 2)
+                    pygame.draw.rect(overlay, (255, 238, 168, 172), marker, width=2, border_radius=8)
+                surface.blit(overlay, (0, 0))
 
     def draw_teleport_transition(self, surface: pygame.Surface) -> None:
         if self.teleport_transition is None:
@@ -4531,6 +4584,19 @@ class GameplayScene(Scene):
         progress = 1.0 - (self.teleport_transition.timer / max(0.001, self.teleport_transition.max_timer))
         progress = max(0.0, min(1.0, progress))
         base_radius = TELEPORT_PORTAL_RADIUS * 1.5
+        transition_drawn = False
+        if hasattr(self.app, "resources"):
+            transition_size = int((base_radius + 24) * 2)
+            transition_drawn = self.app.resources.draw_scene_visual_centered(
+                surface,
+                "teleport_transition",
+                center,
+                (transition_size, transition_size),
+                states=[self.teleport_transition.phase],
+                alpha=max(64, min(255, int(255 * progress))),
+            )
+        if transition_drawn:
+            return
         for ring_index in range(5):
             swirl_phase = progress + ring_index * 0.12
             ring_radius = base_radius * ((1.0 - swirl_phase * 0.68) if self.teleport_transition.phase == "depart" else (0.34 + swirl_phase * 0.76))
@@ -4855,6 +4921,11 @@ class GameplayScene(Scene):
 
         progress = self.parry_overlay.life / self.parry_overlay.max_life
         center = (int(self.parry_overlay.center.x - self.camera.x), int(self.parry_overlay.center.y - self.camera.y))
+        overlay_drawn = False
+        if hasattr(self.app, "resources"):
+            overlay_drawn = self.app.resources.draw_scene_visual_fullscreen(surface, "parry_overlay", alpha=max(72, int(255 * progress)))
+        if overlay_drawn:
+            return
         overlay = self.get_overlay_surface(surface, "parry_overlay")
         shade_alpha = max(0, min(self.parry_overlay.shade_color[3], int(self.parry_overlay.shade_color[3] * (progress ** 0.88))))
         overlay.fill((*self.parry_overlay.shade_color[:3], shade_alpha))
@@ -4882,6 +4953,11 @@ class GameplayScene(Scene):
 
         progress = self.parry_full_flash_timer / PARRY_FULL_FLASH_TIME if PARRY_FULL_FLASH_TIME > 0.0 else 0.0
         alpha = max(0, min(PARRY_FULL_FLASH_COLOR[3], int(PARRY_FULL_FLASH_COLOR[3] * progress)))
+        flash_drawn = False
+        if hasattr(self.app, "resources"):
+            flash_drawn = self.app.resources.draw_scene_visual_fullscreen(surface, "parry_full_flash", alpha=alpha)
+        if flash_drawn:
+            return
         overlay = self.get_overlay_surface(surface, "parry_full_flash")
         overlay.fill((*PARRY_FULL_FLASH_COLOR[:3], alpha))
         surface.blit(overlay, (0, 0))
@@ -4893,6 +4969,19 @@ class GameplayScene(Scene):
         progress = self.parry_clash_timer / PARRY_CLASH_TIME
         clash_point = self.get_parry_contact_point(self.parry_clash_enemy)
         center = (int(clash_point.x - self.camera.x), int(clash_point.y - self.camera.y))
+        clash_drawn = False
+        if hasattr(self.app, "resources"):
+            clash_size = int(120 + (1.0 - progress) * 80)
+            clash_drawn = self.app.resources.draw_scene_visual_centered(
+                surface,
+                "parry_clash",
+                center,
+                (clash_size, clash_size),
+                states=[self.parry_clash_enemy.enemy_type],
+                alpha=max(80, int(255 * progress)),
+            )
+        if clash_drawn:
+            return
         overlay = self.get_overlay_surface(surface, "parry_clash")
         radius = int(30.0 + (1.0 - progress) * 34.0)
         alpha = max(0, min(240, int(240 * (progress ** 0.62))))
@@ -4976,7 +5065,7 @@ class GameplayScene(Scene):
             shadow_rect.centerx = rect.centerx
         pygame.draw.ellipse(draw_surface, SHADOW_COLOR, shadow_rect)
         actor_key = "player"
-        actor_states = [actor.action_state, actor.movement_state, "default"]
+        actor_states = self.build_player_actor_resource_states(actor)
         if isinstance(actor, Enemy):
             actor_key = actor.enemy_type
         base_color = actor.current_color(*colors)
@@ -5002,6 +5091,7 @@ class GameplayScene(Scene):
                 pygame.draw.line(trail, (*HALO_WAVE_COLOR, int(92 * enemy_launch_ratio)), trail_start, trail_end, width=max(2, int(5 * enemy_launch_ratio)))
                 pygame.draw.line(trail, (*HALO_WAVE_ACCENT, int(62 * enemy_launch_ratio)), (trail_start[0], trail_start[1] - 8), (trail_end[0], trail_end[1] - 4), width=max(1, int(3 * enemy_launch_ratio)))
                 draw_surface.blit(trail, (0, 0))
+            actor_states = self.build_enemy_actor_resource_states(actor, enemy_darkness, enemy_launch_ratio)
         if actor is self.player and self.fusion_timer > 0.0:
             base_color = tuple(min(255, channel + boost) for channel, boost in zip(base_color, (18, 12, 24)))
         if actor is self.player and self.sword_mania_timer > 0.0:
@@ -5051,6 +5141,69 @@ class GameplayScene(Scene):
         if draw_surface is not surface:
             draw_surface.set_alpha(draw_alpha)
             surface.blit(draw_surface, (0, 0))
+
+    def build_player_actor_resource_states(self, actor: Player) -> list[str]:
+        states: list[str] = []
+        brain_item = self.equipment.equipped["brain"]
+        weapon_key = "unarmed"
+        if is_knight_brain_sword(brain_item):
+            weapon_key = "brain_sword"
+        elif is_knight_brain_scripture(brain_item):
+            weapon_key = "brain_scripture"
+
+        self._append_actor_resource_state(states, f"{weapon_key}_{actor.action_state}")
+        self._append_actor_resource_state(states, f"{weapon_key}_{actor.movement_state}")
+        self._append_actor_resource_state(states, weapon_key)
+
+        if self.fusion_timer > 0.0:
+            self._append_actor_resource_state(states, f"fusion_{weapon_key}_{actor.action_state}")
+            self._append_actor_resource_state(states, f"fusion_{weapon_key}")
+            self._append_actor_resource_state(states, "fusion")
+        if self.steel_guard_timer > 0.0:
+            self._append_actor_resource_state(states, f"steel_guard_{weapon_key}_{actor.action_state}")
+            self._append_actor_resource_state(states, "steel_guard")
+        if self.sword_mania_timer > 0.0:
+            self._append_actor_resource_state(states, f"sword_mania_{weapon_key}_{actor.action_state}")
+            self._append_actor_resource_state(states, "sword_mania")
+
+        self._append_actor_resource_state(states, actor.action_state)
+        self._append_actor_resource_state(states, actor.movement_state)
+        self._append_actor_resource_state(states, "default")
+        return states
+
+    def build_enemy_actor_resource_states(self, enemy: Enemy, enemy_darkness: float, enemy_launch_ratio: float) -> list[str]:
+        states: list[str] = []
+        variant_keys: list[str] = []
+
+        if enemy.is_friendly:
+            variant_keys.append("friendly")
+        if enemy_launch_ratio > 0.0:
+            variant_keys.append("launched")
+        if enemy_darkness > 0.0:
+            variant_keys.append("darkened")
+
+        if enemy.enemy_type == "boss":
+            if enemy.movement_state == "invade":
+                variant_keys.append("boss_invade")
+            if enemy.attack_profile == "rift" and enemy.action_state in {"attack_windup", "attack"}:
+                variant_keys.append("boss_rift")
+        if enemy.enemy_type == "elite_knight":
+            variant_keys.append("elite_knight_ranged" if enemy.current_attack_is_ranged() else "elite_knight_melee")
+
+        for variant_key in variant_keys:
+            self._append_actor_resource_state(states, f"{variant_key}_{enemy.action_state}")
+            self._append_actor_resource_state(states, f"{variant_key}_{enemy.movement_state}")
+            self._append_actor_resource_state(states, variant_key)
+
+        self._append_actor_resource_state(states, enemy.action_state)
+        self._append_actor_resource_state(states, enemy.movement_state)
+        self._append_actor_resource_state(states, "default")
+        return states
+
+    def _append_actor_resource_state(self, states: list[str], state: str) -> None:
+        if not state or state in states:
+            return
+        states.append(state)
 
     def draw_player_details(self, surface: pygame.Surface, rect: pygame.Rect) -> None:
         chest = pygame.Rect(rect.x + 5, rect.y + 8, rect.width - 10, rect.height // 2)
@@ -5259,9 +5412,13 @@ class GameplayScene(Scene):
             life = float(image["life"])
             alpha = max(0, min(140, int(140 * (life / PLAYER_AFTERIMAGE_LIFETIME))))
             draw_rect = pygame.Rect(int(rect.x - self.camera.x), int(rect.y - self.camera.y), int(rect.width), int(rect.height))
-            ghost = self.get_effect_surface(draw_rect.size, "player_afterimage")
-            ghost.fill((*PLAYER_PARRY_COLOR, alpha))
-            surface.blit(ghost, draw_rect.topleft)
+            afterimage_drawn = False
+            if hasattr(self.app, "resources"):
+                afterimage_drawn = self.app.resources.draw_scene_visual(surface, "player_afterimage", draw_rect, alpha=alpha)
+            if not afterimage_drawn:
+                ghost = self.get_effect_surface(draw_rect.size, "player_afterimage")
+                ghost.fill((*PLAYER_PARRY_COLOR, alpha))
+                surface.blit(ghost, draw_rect.topleft)
 
     def draw_projectiles(self, surface: pygame.Surface) -> None:
         for projectile in self.projectiles:
@@ -5270,13 +5427,29 @@ class GameplayScene(Scene):
                 for index, point in enumerate(projectile.trail[:-1]):
                     alpha = max(18, int(110 * (index + 1) / len(projectile.trail)))
                     radius = max(2, int(projectile.rect.width * 0.35))
-                    pygame.draw.circle(overlay, (*projectile.tint, alpha), (int(point.x - self.camera.x), int(point.y - self.camera.y)), radius)
+                    point_center = (int(point.x - self.camera.x), int(point.y - self.camera.y))
+                    trail_drawn = False
+                    if hasattr(self.app, "resources"):
+                        trail_drawn = self.app.resources.draw_scene_visual_centered(
+                            overlay,
+                            "projectile_trail",
+                            point_center,
+                            (radius * 2 + 6, radius * 2 + 6),
+                            alpha=alpha,
+                        )
+                    if not trail_drawn:
+                        pygame.draw.circle(overlay, (*projectile.tint, alpha), point_center, radius)
                 surface.blit(overlay, (0, 0))
 
             draw_rect = pygame.Rect(int(projectile.rect.x - self.camera.x), int(projectile.rect.y - self.camera.y), int(projectile.rect.width), int(projectile.rect.height))
-            pygame.draw.ellipse(surface, projectile.tint, draw_rect)
-            outline = PLAYER_PARRY_COLOR if projectile.reflected else (28, 30, 36)
-            pygame.draw.ellipse(surface, outline, draw_rect, width=2)
+            projectile_drawn = False
+            if hasattr(self.app, "resources"):
+                states = ["reflected"] if projectile.reflected else ["default"]
+                projectile_drawn = self.app.resources.draw_scene_visual(surface, "projectile", draw_rect, states=states)
+            if not projectile_drawn:
+                pygame.draw.ellipse(surface, projectile.tint, draw_rect)
+                outline = PLAYER_PARRY_COLOR if projectile.reflected else (28, 30, 36)
+                pygame.draw.ellipse(surface, outline, draw_rect, width=2)
 
     def draw_slash_effects(self, surface: pygame.Surface) -> None:
         for effect in self.slash_effects:
@@ -5286,9 +5459,21 @@ class GameplayScene(Scene):
             start = (int(effect.start.x - self.camera.x), int(effect.start.y - self.camera.y))
             end = (int(effect.end.x - self.camera.x), int(effect.end.y - self.camera.y))
             width = max(3, int(9 * effect.width_scale * life_ratio))
-            pygame.draw.line(overlay, (*effect.tint, alpha), start, end, width=width)
-            pygame.draw.line(overlay, (*effect.accent_tint, max(0, alpha - 34)), (start[0], start[1] + 14), (end[0], end[1] - 14), width=max(2, width // 2))
-            pygame.draw.circle(overlay, (*effect.tint, max(0, alpha - 20)), (int(effect.center.x - self.camera.x), int(effect.center.y - self.camera.y)), max(6, int(20 * effect.width_scale * life_ratio)), width=2)
+            slash_drawn = False
+            if hasattr(self.app, "resources"):
+                slash_drawn = self.app.resources.draw_scene_line_visual(overlay, "slash_effect_line", start, end, width, alpha=alpha)
+                core_size = max(12, int(40 * effect.width_scale * life_ratio))
+                self.app.resources.draw_scene_visual_centered(
+                    overlay,
+                    "slash_effect_core",
+                    (int(effect.center.x - self.camera.x), int(effect.center.y - self.camera.y)),
+                    (core_size, core_size),
+                    alpha=max(0, alpha - 20),
+                )
+            if not slash_drawn:
+                pygame.draw.line(overlay, (*effect.tint, alpha), start, end, width=width)
+                pygame.draw.line(overlay, (*effect.accent_tint, max(0, alpha - 34)), (start[0], start[1] + 14), (end[0], end[1] - 14), width=max(2, width // 2))
+                pygame.draw.circle(overlay, (*effect.tint, max(0, alpha - 20)), (int(effect.center.x - self.camera.x), int(effect.center.y - self.camera.y)), max(6, int(20 * effect.width_scale * life_ratio)), width=2)
             surface.blit(overlay, (0, 0))
 
     def draw_impact_bursts(self, surface: pygame.Surface) -> None:
@@ -5302,14 +5487,24 @@ class GameplayScene(Scene):
             ring_width = max(2, int(7 * life_ratio))
             glow_radius = max(18, int(ring_radius * 0.55))
             alpha = max(0, min(200, int(200 * life_ratio)))
-            pygame.draw.circle(overlay, (*burst.tint, alpha), center, ring_radius, width=ring_width)
-            pygame.draw.circle(overlay, (*burst.accent_tint, max(0, alpha - 36)), center, glow_radius, width=max(1, ring_width - 2))
-            for index in range(burst.spoke_count):
-                angle = (math.tau * index / burst.spoke_count) + (1.0 - life_ratio) * 0.35
-                direction = Vec2(math.cos(angle), math.sin(angle))
-                inner = Vec2(center) + direction * (ring_radius * 0.48)
-                outer = Vec2(center) + direction * (ring_radius + 12.0 + 20.0 * (1.0 - life_ratio))
-                pygame.draw.line(overlay, (*burst.tint, max(0, alpha - 20)), inner, outer, width=max(1, ring_width - 1))
+            burst_drawn = False
+            if hasattr(self.app, "resources"):
+                burst_drawn = self.app.resources.draw_scene_visual_centered(
+                    overlay,
+                    "impact_burst",
+                    center,
+                    (ring_radius * 2 + 28, ring_radius * 2 + 28),
+                    alpha=alpha,
+                )
+            if not burst_drawn:
+                pygame.draw.circle(overlay, (*burst.tint, alpha), center, ring_radius, width=ring_width)
+                pygame.draw.circle(overlay, (*burst.accent_tint, max(0, alpha - 36)), center, glow_radius, width=max(1, ring_width - 2))
+                for index in range(burst.spoke_count):
+                    angle = (math.tau * index / burst.spoke_count) + (1.0 - life_ratio) * 0.35
+                    direction = Vec2(math.cos(angle), math.sin(angle))
+                    inner = Vec2(center) + direction * (ring_radius * 0.48)
+                    outer = Vec2(center) + direction * (ring_radius + 12.0 + 20.0 * (1.0 - life_ratio))
+                    pygame.draw.line(overlay, (*burst.tint, max(0, alpha - 20)), inner, outer, width=max(1, ring_width - 1))
             surface.blit(overlay, (0, 0))
 
     def draw_perfect_dodge_flash(self, surface: pygame.Surface) -> None:
@@ -5318,6 +5513,11 @@ class GameplayScene(Scene):
 
         progress = self.perfect_dodge_flash_timer / PERFECT_DODGE_FLASH_TIME if PERFECT_DODGE_FLASH_TIME > 0.0 else 0.0
         alpha = max(0, min(132, int(PERFECT_DODGE_FLASH_COLOR[3] * (progress ** 0.7))))
+        flash_drawn = False
+        if hasattr(self.app, "resources"):
+            flash_drawn = self.app.resources.draw_scene_visual_fullscreen(surface, "perfect_dodge_flash", alpha=alpha)
+        if flash_drawn:
+            return
         overlay = self.get_overlay_surface(surface, "perfect_dodge_flash")
         overlay.fill((*PERFECT_DODGE_FLASH_COLOR[:3], alpha))
         surface.blit(overlay, (0, 0))
@@ -5328,6 +5528,11 @@ class GameplayScene(Scene):
 
         progress = self.finisher_overlay.life / self.finisher_overlay.max_life
         center = (int(self.finisher_overlay.center.x - self.camera.x), int(self.finisher_overlay.center.y - self.camera.y))
+        overlay_drawn = False
+        if hasattr(self.app, "resources"):
+            overlay_drawn = self.app.resources.draw_scene_visual_fullscreen(surface, "finisher_overlay", alpha=max(72, int(255 * progress)))
+        if overlay_drawn:
+            return
         overlay = self.get_overlay_surface(surface, "finisher_overlay")
         shade_alpha = max(0, min(self.finisher_overlay.shade_color[3], int(self.finisher_overlay.shade_color[3] * (progress ** 0.92))))
         overlay.fill((*self.finisher_overlay.shade_color[:3], shade_alpha))
@@ -5426,12 +5631,15 @@ class GameplayScene(Scene):
         if self.execution_enemy is None:
             return
 
-        overlay = self.get_overlay_surface(surface, "execution_effect")
-        overlay.fill(EXECUTION_FLASH_COLOR)
-        surface.blit(overlay, (0, 0))
-
         enemy_center = pygame.Vector2(self.execution_enemy.rect.centerx - self.camera.x, self.execution_enemy.rect.centery - self.camera.y)
         player_center = pygame.Vector2(self.player.rect.centerx - self.camera.x, self.player.rect.centery - self.camera.y)
+        execution_drawn = False
+        if hasattr(self.app, "resources"):
+            execution_drawn = self.app.resources.draw_scene_visual_fullscreen(surface, "execution_effect", states=[self.execution_style])
+        if not execution_drawn:
+            overlay = self.get_overlay_surface(surface, "execution_effect")
+            overlay.fill(EXECUTION_FLASH_COLOR)
+            surface.blit(overlay, (0, 0))
         if self.execution_style == "lancer":
             pygame.draw.line(surface, ATTACK_COLOR, (player_center.x - self.execution_direction * 10, player_center.y - 28), (enemy_center.x + self.execution_direction * 18, enemy_center.y + 28), width=8)
             pygame.draw.line(surface, PLAYER_PARRY_COLOR, (player_center.x, player_center.y - 36), (enemy_center.x, enemy_center.y + 36), width=4)
